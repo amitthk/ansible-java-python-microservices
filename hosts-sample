@@ -1,0 +1,1 @@
+<your-vm-ip> ansible_user=appadm ansible_ssh_private_key_file=~/.ssh/id_sit_ecuser ansible_connection=ssh ansible_ssh_common_args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o HostKeyAlgorithms=+ssh-ed25519'

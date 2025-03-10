@@ -1,0 +1,30 @@
+- name: Check if OpenJDK 21 is installed
+  stat:
+    path: "{{ java_home }}/bin/java"
+  register: java_check
+
+- name: Download and install Amazon Corretto JDK 21
+  when: not java_check.stat.exists
+  block:
+    - name: Create Java installation directory
+      file:
+        path: "{{ java_home }}"
+        state: directory
+        mode: '0755'
+
+    - name: Download OpenJDK 21
+      get_url:
+        url: "{{ java_url }}"
+        dest: "/tmp/corretto21.tar.gz"
+
+    - name: Extract OpenJDK 21
+      ansible.builtin.unarchive:
+        src: "/tmp/corretto21.tar.gz"
+        dest: "{{ java_home }}"
+        remote_src: yes
+        extra_opts: [--strip-components=1]
+
+    - name: Ensure Java is executable
+      file:
+        path: "{{ java_home }}/bin/java"
+        mode: '0755'

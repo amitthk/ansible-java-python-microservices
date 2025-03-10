@@ -1,0 +1,27 @@
+- name: Install Required Packages
+  yum:
+    name:
+      - epel-release
+      - python3
+      - python3-pip
+      - java-17-openjdk
+      - openldap-clients
+      - unixODBC
+      - unixODBC-devel
+    state: present
+
+- name: Ensure Directories Exist
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  with_items:
+    - "{{ jdk_path }}"
+    - "{{ python_path }}"
+    - "{{ venv_path }}"
+    - "/opt/data-lake"
+
+- name: Upgrade pip
+  pip:
+    name: pip
+    state: latest

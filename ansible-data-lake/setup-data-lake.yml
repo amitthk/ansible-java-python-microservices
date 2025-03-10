@@ -1,0 +1,11 @@
+- name: Deploy Data Lake on CentOS 7.9
+  hosts: all
+  become: yes  # Use sudo only when needed
+  roles:
+    - common
+    - jupyter
+    - airflow
+    - superset
+    - zookeeper
+    - kafka
+    - spark

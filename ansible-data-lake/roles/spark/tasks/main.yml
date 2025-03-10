@@ -1,0 +1,15 @@
+- name: Install Spark
+  get_url:
+    url: "https://downloads.apache.org/spark/spark-3.5.5/spark-3.5.5-bin-hadoop3.tgz"
+    dest: "/opt/spark.tgz"
+
+- name: Extract Spark
+  unarchive:
+    src: "/opt/spark.tgz"
+    dest: "/opt/"
+    remote_src: yes
+
+- name: Deploy Spark Config
+  template:
+    src: spark-defaults.conf.j2
+    dest: "/opt/spark/conf/spark-defaults.conf"

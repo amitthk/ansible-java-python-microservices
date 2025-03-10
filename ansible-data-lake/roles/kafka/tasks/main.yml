@@ -1,0 +1,28 @@
+- name: Install Kafka Dependencies
+  yum:
+    name: java-17-openjdk
+    state: present
+  become: yes
+
+- name: Download Apache Kafka
+  get_url:
+    url: "https://downloads.apache.org/kafka/3.9.0/kafka_2.13-3.9.0.tgz"
+    dest: "/opt/kafka.tgz"
+  become: yes
+
+- name: Extract Kafka
+  unarchive:
+    src: "/opt/kafka.tgz"
+    dest: "/opt/"
+    remote_src: yes
+  become: yes
+
+- name: Configure Kafka Server
+  template:
+    src: server.properties.j2
+    dest: "/opt/kafka/config/server.properties"
+  become: yes
+
+- name: Start Kafka with Zookeeper
+  shell: "/opt/kafka/bin/kafka-server-start.sh /opt/kafka/config/server.properties &"
+  become: yes

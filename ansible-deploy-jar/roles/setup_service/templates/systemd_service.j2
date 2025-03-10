@@ -1,0 +1,14 @@
+[Unit]
+Description={{ service_name }}
+After=network.target
+
+[Service]
+User=appadm
+WorkingDirectory={{ jar_path }}
+Environment="JAVA_HOME={{ java_home }}"
+ExecStart={{ java_home }}/bin/java -jar {{ jar_file }}
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,14 @@
+- name: Install Jupyter
+  pip:
+    name:
+      - jupyterhub
+      - jupyterhub-ldapauthenticator
+    virtualenv: "{{ venv_path }}"
+
+- name: Deploy Jupyter Config
+  template:
+    src: jupyterhub_config.py.j2
+    dest: /opt/data-lake/jupyterhub_config.py
+
+- name: Start JupyterHub
+  shell: "{{ venv_path }}/bin/jupyterhub -f /opt/data-lake/jupyterhub_config.py &"

@@ -1,0 +1,7 @@
+from flask_appbuilder.security.manager import AUTH_LDAP
+
+AUTH_TYPE = AUTH_LDAP
+AUTH_LDAP_SERVER = "{{ ldap_server }}"
+AUTH_LDAP_BIND_USER = "{{ ldap_bind_user }}"
+AUTH_LDAP_BIND_PASSWORD = "{{ ldap_bind_password }}"
+AUTH_LDAP_SEARCH = "{{ ldap_base_dn }}"

@@ -1,0 +1,40 @@
+#ansible playbook for setup of spring boot microservices and python data engineering components
+
+
+
+Make sure you have the python3 and pip3 installed on your machine.
+
+Install ansible or create a virtual environment and install ansible using the following commands:
+
+#+BEGIN_SRC 
+python3 -m pip install --upgrade pip
+python3 -m venv venv
+source venv/bin/activate
+pip install ansible
+#+END_SRC
+
+Rename the .env-sample file to .env and update the values of the variables in the .env file.
+
+#+BEGIN_SRC 
+mv .env-sample .env
+vi .env
+#+END_SRC
+
+Update the hosts file with the IP address of the VM and the username of the VM.
+
+#+BEGIN_SRC 
+mv hosts-sample hosts
+vi hosts
+#+END_SRC
+
+To deploy spring boot microservices jar from s3 run the ansible playbook using the following command:
+
+#+BEGIN_SRC 
+ansible-playbook -i hosts ansible-deploy-jar/deploy-jar.yml --extra-vars "service_name=backend jar_timestamp=20250310055237" -vvvv
+#+END_SRC
+
+To setup data lake components run the ansible playbook using the following command:
+
+#+BEGIN_SRC 
+ansible-playbook -i hosts ansible-data-lake/setup-data-lake.yml -vvvv
+#+END_SRC

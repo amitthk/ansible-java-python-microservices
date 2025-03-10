@@ -1,0 +1,8 @@
+[webserver]
+authenticate = True
+auth_backend = airflow.contrib.auth.backends.ldap_auth
+
+[ldap]
+uri = {{ ldap_server }}
+bind_user = {{ ldap_bind_user }}
+bind_password = {{ ldap_bind_password }}

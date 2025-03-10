@@ -1,0 +1,32 @@
+- hosts: all
+  gather_facts: yes
+  connection: ssh
+  become: yes
+  become_method: sudo
+  become_user: opc  # Use opc for privileged tasks
+  vars:
+    ansible_user: "{{ lookup('env', 'VM_USERNAME') }}"   # SSH Login User (opc)
+    app_user: "appadm"                                   # Non-privileged User
+    remote_user: "{{ lookup('env', 'VM_USERNAME') }}"    # Remote user for SSH
+    ansible_ssh_private_key_file: "{{ lookup('env', 'VM_SSH_KEY') }}"
+    service_name: "{{ service_name }}"
+    jar_path: "/opt/apps/{{ service_name }}"
+    jar_file: "/opt/apps/{{ service_name }}/{{ service_name }}.jar"
+    java_home: "/opt/apps/openjdk21"
+    java_url: "https://corretto.aws/downloads/latest/amazon-corretto-21-x64-linux-jdk.tar.gz"
+    s3_bucket: "{{ lookup('env', 'AWS_S3_BUCKET_REPOSITORY') }}"
+    s3_artifact_path: "artifacts/{{ jar_timestamp }}/backend/{{ service_name }}.jar"
+  pre_tasks:
+    - name: Ensure appadm owns application directories
+      file:
+        path: "{{ jar_path }}"
+        state: directory
+        owner: appadm
+        group: appadm
+        mode: "0755"
+      become: yes
+      become_user: opc  # Run as opc since it needs sudo
+  roles:
+    - { role: java_setup, become: yes, become_user: appadm }       # Run as appadm (no sudo)
+    - { role: deploy_jar, become: yes, become_user: appadm }  # Run as appadm (no sudo)
+    - { role: setup_service, become: yes, become_user: root }       # Run as opc (sudo required)

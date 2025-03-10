@@ -1,0 +1,3 @@
+c.JupyterHub.authenticator_class = 'ldapauthenticator.LDAPAuthenticator'
+c.LDAPAuthenticator.server_address = '{{ ldap_server }}'
+c.LDAPAuthenticator.bind_dn_template = 'cn={username},{{ ldap_base_dn }}'

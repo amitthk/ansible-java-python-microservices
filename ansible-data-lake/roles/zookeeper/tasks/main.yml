@@ -1,0 +1,28 @@
+- name: Install Java (required for Zookeeper)
+  yum:
+    name: java-17-openjdk
+    state: present
+  become: yes  # Run this as root
+
+- name: Download Zookeeper
+  get_url:
+    url: "https://downloads.apache.org/zookeeper/stable/apache-zookeeper-3.8.4-bin.tar.gz"
+    dest: "/opt/zookeeper.tar.gz"
+  become: yes
+
+- name: Extract Zookeeper
+  unarchive:
+    src: "/opt/zookeeper.tar.gz"
+    dest: "/opt/"
+    remote_src: yes
+  become: yes
+
+- name: Configure Zookeeper
+  template:
+    src: zoo.cfg.j2
+    dest: "/opt/apache-zookeeper-3.8.3-bin/conf/zoo.cfg"
+  become: yes
+
+- name: Start Zookeeper
+  shell: "/opt/apache-zookeeper-3.8.3-bin/bin/zkServer.sh start"
+  become: yes

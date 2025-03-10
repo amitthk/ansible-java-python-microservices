@@ -1,0 +1,10 @@
+spark.master local[*]
+spark.driver.memory 4g
+spark.executor.memory 4g
+spark.driver.bindAddress 127.0.0.1
+spark.driver.host localhost
+spark.sql.catalog.iceberg_catalog type=hive
+spark.sql.catalog.iceberg_catalog.uri=thrift://localhost:9083
+spark.sql.catalog.iceberg_catalog.warehouse=hdfs:///iceberg_warehouse
+spark.sql.extensions=org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions
+spark.sql.catalog.iceberg=org.apache.iceberg.spark.SparkCatalog

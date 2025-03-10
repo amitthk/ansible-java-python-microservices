@@ -1,0 +1,31 @@
+<configuration>
+  <property>
+    <name>hive.metastore.warehouse.dir</name>
+    <value>hdfs:///iceberg_warehouse</value>
+  </property>
+
+  <property>
+    <name>iceberg.hive.enabled</name>
+    <value>true</value>
+  </property>
+
+  <property>
+    <name>hive.metastore.client.capability.check</name>
+    <value>false</value>
+  </property>
+
+  <property>
+    <name>hive.metastore.uris</name>
+    <value>thrift://localhost:9083</value>
+  </property>
+
+  <property>
+    <name>hive.exec.dynamic.partition</name>
+    <value>true</value>
+  </property>
+
+  <property>
+    <name>hive.exec.dynamic.partition.mode</name>
+    <value>nonstrict</value>
+  </property>
+</configuration>

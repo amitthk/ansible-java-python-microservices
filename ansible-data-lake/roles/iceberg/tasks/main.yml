@@ -1,0 +1,35 @@
+- name: Ensure JAVA_HOME for Iceberg is set
+  lineinfile:
+    path: "/etc/profile.d/iceberg.sh"
+    line: "export JAVA_HOME=/opt/tomcat/apps/openjdk17"
+    create: yes
+  become: yes
+
+- name: Reload shell environment variables
+  shell: "source /etc/profile.d/iceberg.sh"
+  become: yes
+
+- name: Create Iceberg directory
+  file:
+    path: "/opt/iceberg"
+    state: directory
+    mode: "0755"
+  become: yes
+
+- name: Download Iceberg Spark runtime
+  get_url:
+    url: "https://repo1.maven.org/maven2/org/apache/iceberg/iceberg-spark-runtime-3.5_2.12/1.4.2/iceberg-spark-runtime-3.5_2.12-1.4.2.jar"
+    dest: "/opt/iceberg/iceberg-spark-runtime.jar"
+  become: yes
+
+- name: Ensure Spark is configured for Iceberg
+  template:
+    src: spark-defaults.conf.j2
+    dest: "/opt/spark/conf/spark-defaults.conf"
+  become: yes
+
+- name: Ensure Iceberg properties are set for Hive Metastore
+  template:
+    src: hive-site.xml.j2
+    dest: "/opt/hive/conf/hive-site.xml"
+  become: yes

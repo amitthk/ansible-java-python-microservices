@@ -1,0 +1,14 @@
+- name: Install Airflow
+  pip:
+    name:
+      - apache-airflow
+      - flask-appbuilder[ldap]
+    virtualenv: "{{ venv_path }}"
+
+- name: Deploy Airflow Config
+  template:
+    src: airflow.cfg.j2
+    dest: /opt/data-lake/airflow.cfg
+
+- name: Start Airflow
+  shell: "{{ venv_path }}/bin/airflow webserver -D"

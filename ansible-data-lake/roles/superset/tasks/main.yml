@@ -1,0 +1,14 @@
+- name: Install Superset
+  pip:
+    name:
+      - apache-superset
+      - flask-appbuilder[ldap]
+    virtualenv: "{{ venv_path }}"
+
+- name: Deploy Superset Config
+  template:
+    src: superset_config.py.j2
+    dest: /opt/data-lake/superset_config.py
+
+- name: Start Superset
+  shell: "{{ venv_path }}/bin/superset run -p 8088 --with-threads --reload --debugger &"

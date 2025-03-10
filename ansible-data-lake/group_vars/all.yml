@@ -1,0 +1,16 @@
+jdk_path: "/opt/tomcat/apps/openjdk17"
+python_path: "/opt/tomcat/apps/python3"
+venv_path: "/opt/tomcat/apps/venv3"
+
+ldap_server: "ldap://your-ad-server:389"
+ldap_bind_user: "cn=admin,dc=yourdomain,dc=com"
+ldap_bind_password: "yourpassword"
+ldap_base_dn: "dc=yourdomain,dc=com"
+
+mssql_host: "your-mssql-server"
+mssql_db: "your-database"
+mssql_user: "your-username"
+mssql_password: "your-password"
+
+hdfs_path: "/data/hdfs"
+s3_bucket: "s3://your-bucket-name"
