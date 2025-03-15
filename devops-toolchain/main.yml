@@ -87,7 +87,8 @@
         creates: "/tmp/amazon-corretto-21.0.6.7.1-linux-{{ architecture_alias }}"
 
     - name: Move Corretto JDK21 to final location
-      command: >
+      shell: >
+        shopt -s dotglob
         mv /tmp/amazon-corretto-21.0.6.7.1-linux-{{ architecture_alias }}/* {{ app_dir }}/openjdk21/
       args:
         creates: "{{ app_dir }}/openjdk21/bin/java"
