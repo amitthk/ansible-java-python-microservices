@@ -1,0 +1,15 @@
+[Unit]
+Description=SonarQube Service
+After=network.target
+
+[Service]
+User=sonarqube
+Environment="JAVA_HOME={{ app_dir }}/openjdk21"
+ExecStart={{ app_dir }}/sonarqube/bin/linux-x86-64/sonar.sh start
+ExecStop={{ app_dir }}/sonarqube/bin/linux-x86-64/sonar.sh stop
+Restart=always
+LimitNOFILE=65536
+LimitNPROC=4096
+
+[Install]
+WantedBy=multi-user.target

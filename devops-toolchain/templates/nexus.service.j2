@@ -1,0 +1,11 @@
+[Unit]
+Description=Nexus Repository Manager
+After=network.target
+
+[Service]
+User=nexus
+ExecStart={{ app_dir }}/nexus/bin/nexus run
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

@@ -36,6 +36,7 @@
           - unzip
           - tar
           - systemd
+          - git
         state: present
 
     - name: Create service users
@@ -124,13 +125,43 @@
         mode: '0644'
         force: no
 
-    - name: Setup SonarQube
-      unarchive:
-        src: "{{ sonarqube_url }}"
-        dest: "{{ app_dir }}/sonarqube"
-        remote_src: yes
-        extra_opts: ["--strip-components=1"]
-        creates: "{{ app_dir }}/sonarqube/bin"
+    - name: Setup SonarQube correctly without strip-components
+      block:
+        - name: Download SonarQube
+          get_url:
+            url: "{{ sonarqube_url }}"
+            dest: "/tmp/sonarqube.zip"
+            mode: '0644'
+          args:
+            creates: "/tmp/sonarqube.zip"
+
+        - name: Extract SonarQube to temp location
+          unarchive:
+            src: "/tmp/sonarqube.zip"
+            dest: "/tmp/"
+            remote_src: yes
+            creates: "/tmp/sonarqube-5.1.2"
+
+        - name: Move extracted SonarQube contents
+          command: >
+            mv /tmp/sonarqube-5.1.2/* {{ app_dir }}/sonarqube/
+          args:
+            creates: "{{ app_dir }}/sonarqube/bin"
+
+    - name: Deploy systemd service files from Jinja templates
+      template:
+        src: "templates/{{ item }}.service.j2"
+        dest: "/etc/systemd/system/{{ item }}.service"
+        mode: '0644'
+      loop:
+        - gitea
+        - nexus
+        - jenkins
+        - sonarqube
+
+    - name: Reload systemd daemon
+      systemd:
+        daemon_reload: true
 
     - name: Enable and start systemd services
       systemd:
