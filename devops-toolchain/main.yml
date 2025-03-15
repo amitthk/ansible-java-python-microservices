@@ -125,28 +125,32 @@
         mode: '0644'
         force: no
 
-    - name: Setup SonarQube correctly without strip-components
-      block:
-        - name: Download SonarQube
-          get_url:
-            url: "{{ sonarqube_url }}"
-            dest: "/tmp/sonarqube.zip"
-            mode: '0644'
-          args:
-            creates: "/tmp/sonarqube.zip"
+    - name: Download SonarQube
+      get_url:
+        url: "{{ sonarqube_url }}"
+        dest: "/tmp/sonarqube.zip"
+        mode: '0644'
+        force: no
 
-        - name: Extract SonarQube to temp location
-          unarchive:
-            src: "/tmp/sonarqube.zip"
-            dest: "/tmp/"
-            remote_src: yes
-            creates: "/tmp/sonarqube-5.1.2"
+    - name: Extract SonarQube
+      unarchive:
+        src: "/tmp/sonarqube.zip"
+        dest: "/tmp"
+        remote_src: yes
 
-        - name: Move extracted SonarQube contents
-          command: >
-            mv /tmp/sonarqube-5.1.2/* {{ app_dir }}/sonarqube/
-          args:
-            creates: "{{ app_dir }}/sonarqube/bin"
+    - name: Find extracted SonarQube directory
+      find:
+        paths: "/tmp"
+        patterns: "sonarqube-*"
+        file_type: directory
+      register: sonarqube_extracted_dir
+
+    - name: Move SonarQube contents to app directory
+      shell: |
+        shopt -s dotglob
+        mv {{ sonarqube_extracted_dir.files[0].path }}/* {{ app_dir }}/sonarqube/
+      args:
+        creates: "{{ app_dir }}/sonarqube/bin"
 
     - name: Deploy systemd service files from Jinja templates
       template:
