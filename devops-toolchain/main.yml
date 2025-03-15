@@ -94,8 +94,7 @@
         url: "{{ golang_url }}"
         dest: "/tmp/golang.tar.gz"
         mode: '0644'
-      args:
-        creates: "/tmp/golang.tar.gz"
+        force: no
 
     - name: Install Golang
       unarchive:
@@ -108,8 +107,7 @@
         url: "{{ gitea_url }}"
         dest: "{{ app_dir }}/gitea/gitea"
         mode: '0755'
-      args:
-        creates: "{{ app_dir }}/gitea/gitea"
+        force: no
 
     - name: Setup Nexus
       unarchive:
@@ -124,8 +122,7 @@
         url: "{{ jenkins_url }}"
         dest: "{{ app_dir }}/jenkins/jenkins.war"
         mode: '0644'
-      args:
-        creates: "{{ app_dir }}/jenkins/jenkins.war"
+        force: no
 
     - name: Setup SonarQube
       unarchive:
