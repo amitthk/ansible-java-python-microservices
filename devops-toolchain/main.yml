@@ -12,7 +12,6 @@
     nexus_url: "https://download.sonatype.com/nexus/3/nexus-unix-aarch64-3.78.1-02.tar.gz"
     jenkins_url: "https://get.jenkins.io/war-stable/latest/jenkins.war"
     sonarqube_url: "https://binaries.sonarsource.com/sonarqube/sonarqube-5.1.2.zip"
-    app_dir: /opt/apps
 
   tasks:
     - name: Install required packages
@@ -24,10 +23,24 @@
           - make
           - wget
           - xz
+          - unzip
+          - tar
           - systemd
         state: present
 
-    - name: Create app directories and service users
+    - name: Create service users
+      user:
+        name: "{{ item }}"
+        system: yes
+        shell: /sbin/nologin
+        create_home: no
+      loop:
+        - gitea
+        - nexus
+        - jenkins
+        - sonarqube
+
+    - name: Create app directories
       file:
         path: "{{ app_dir }}/{{ item }}"
         state: directory
