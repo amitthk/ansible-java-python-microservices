@@ -1,0 +1,98 @@
+---
+- name: DevOps Toolchain Installation on Fedora
+  hosts: all
+  become: true
+
+  vars:
+    app_dir: /opt/apps
+    java_url: "https://corretto.aws/downloads/latest/amazon-corretto-21-x64-linux-jdk.tar.gz"
+    python_url: "https://www.python.org/ftp/python/3.11.11/Python-3.11.11.tar.xz"
+    golang_url: "https://go.dev/dl/go1.24.1.linux-amd64.tar.gz"
+    gitea_url: "https://dl.gitea.com/gitea/1.23.3/gitea-1.23.3-linux-amd64.xz"
+    nexus_url: "https://download.sonatype.com/nexus/3/nexus-unix-aarch64-3.78.1-02.tar.gz"
+    jenkins_url: "https://get.jenkins.io/war-stable/latest/jenkins.war"
+    sonarqube_url: "https://binaries.sonarsource.com/sonarqube/sonarqube-5.1.2.zip"
+    app_dir: /opt/apps
+
+  tasks:
+    - name: Install required packages
+      dnf:
+        name:
+          - openssl-devel
+          - gcc
+          - gcc-c++
+          - make
+          - wget
+          - xz
+          - systemd
+        state: present
+
+    - name: Create app directories and service users
+      file:
+        path: "{{ app_dir }}/{{ item }}"
+        state: directory
+        owner: "{{ item }}"
+        group: "{{ item }}"
+      loop:
+        - gitea
+        - nexus
+        - jenkins
+        - sonarqube
+
+    - name: Install Amazon Corretto JDK21
+      unarchive:
+        src: "{{ java_url }}"
+        dest: "{{ app_dir }}"
+        remote_src: yes
+
+    - name: Install Python 3.11
+      shell: |
+        cd /tmp
+        wget {{ python_url }}
+        tar -xf Python-3.11.11.tar.xz
+        cd Python-3.11.11
+        ./configure --prefix={{ app_dir }}/python3.11
+        make
+        make install
+
+    - name: Install Golang
+      unarchive:
+        src: "{{ golang_url }}"
+        dest: "{{ app_dir }}"
+        creates: "{{ app_dir }}/go"
+
+    - name: Setup Gitea
+      unarchive:
+        src: "{{ gitea_url }}"
+        dest: "{{ app_dir }}/gitea"
+        remote_src: yes
+
+    - name: Setup Nexus
+      unarchive:
+        src: "{{ nexus_url }}"
+        dest: "{{ app_dir }}/nexus"
+        extra_opts: ["--strip-components=1"]
+        remote_src: yes
+
+    - name: Download Jenkins WAR
+      get_url:
+        url: "{{ jenkins_url }}"
+        dest: "{{ app_dir }}/jenkins/jenkins.war"
+
+    - name: Setup SonarQube
+      unarchive:
+        src: "{{ sonarqube_url }}"
+        dest: "{{ app_dir }}/sonarqube"
+        remote_src: yes
+        extra_opts: ["--strip-components=1"]
+
+    - name: Enable and start systemd services
+      systemd:
+        name: "{{ item }}"
+        enabled: true
+        state: started
+      loop:
+        - gitea
+        - nexus
+        - jenkins
+        - sonarqube
