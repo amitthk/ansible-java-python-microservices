@@ -314,14 +314,11 @@
 
     - name: Create PostgreSQL user explicitly
       shell: |
-        sudo -u postgres psql -c "DO \\
-        \$\$
-        BEGIN
-          IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = '{{ sonarqube_db_user }}') THEN
-            CREATE ROLE {{ sonarqube_db_user }} LOGIN PASSWORD '{{ sonarqube_db_password }}';
-          END IF;
-        END
-        \$\$;"
+        sudo -u postgres psql -c "CREATE USER {{ sonarqube_db_user }} WITH PASSWORD '{{ sonarqube_db_password }}';" || true
+
+    - name: Set PostgreSQL user schema search path
+      shell: |
+        sudo -u postgres psql -d {{ sonarqube_db }} -c "ALTER USER {{ sonarqube_db_user }} SET search_path TO sonarqube_schema;"
 
     - name: Grant all privileges to PostgreSQL user
       shell: |
