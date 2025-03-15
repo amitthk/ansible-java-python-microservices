@@ -1,0 +1,107 @@
+---
+- name: Install required packages
+  dnf:
+    name:
+      - postgresql-server
+      - fontconfig
+      - libfreetype6
+      - unzip
+    state: present
+
+- name: Configure sysctl limits for Elasticsearch requirements
+  sysctl:
+    name: "{{ item.name }}"
+    value: "{{ item.value }}"
+    state: present
+    reload: yes
+  loop:
+    - { name: "vm.max_map_count", value: "524288" }
+    - { name: "fs.file-max", value: "131072" }
+
+- name: Ensure limits are set for SonarQube user
+  lineinfile:
+    path: /etc/security/limits.conf
+    line: "{{ sonarqube_user }} {{ item }}"
+    state: present
+  loop:
+    - "soft nofile 131072"
+    - "hard nofile 131072"
+    - "soft nproc 8192"
+    - "hard nproc 8192"
+
+- name: Initialize PostgreSQL database
+  command: postgresql-setup --initdb
+  args:
+    creates: /var/lib/pgsql/data/PG_VERSION
+
+- name: Enable and start PostgreSQL service
+  systemd:
+    name: postgresql
+    state: started
+    enabled: true
+
+- name: Configure PostgreSQL database and user
+  become_user: postgres
+  postgresql_db:
+    name: "{{ sonarqube_db_name }}"
+    encoding: UTF8
+    state: present
+
+- name: Create PostgreSQL user
+  become_user: postgres
+  postgresql_user:
+    name: "{{ sonarqube_db_user }}"
+    password: "{{ sonarqube_db_password }}"
+    priv: "ALL"
+    db: "{{ sonarqube_db_name }}"
+
+- name: Ensure SonarQube application directory exists
+  file:
+    path: "{{ app_dir }}/sonarqube"
+    state: directory
+    owner: "{{ sonarqube_user }}"
+    group: "{{ sonarqube_user }}"
+    mode: '0755'
+
+- name: Download SonarQube
+  get_url:
+    url: "{{ sonarqube_url }}"
+    dest: "/tmp/sonarqube.zip"
+    mode: '0644'
+    force: no
+
+- name: Extract SonarQube
+  unarchive:
+    src: "/tmp/sonarqube.zip"
+    dest: "/tmp"
+    remote_src: yes
+    creates: "/tmp/sonarqube-{{ sonarqube_version }}"
+
+- name: Move SonarQube contents explicitly
+  command: mv "/tmp/sonarqube-{{ sonarqube_version }}"/* "{{ app_dir }}/sonarqube/"
+  args:
+    creates: "{{ app_dir }}/sonarqube/bin"
+
+- name: Configure sonar.properties
+  template:
+    src: sonar.properties.j2
+    dest: "{{ app_dir }}/sonarqube/conf/sonar.properties"
+    owner: "{{ sonarqube_user }}"
+    group: "{{ sonarqube_user }}"
+    mode: '0644'
+  notify: Restart SonarQube
+
+- name: Deploy SonarQube systemd service
+  template:
+    src: sonarqube.service.j2
+    dest: "/etc/systemd/system/sonarqube.service"
+    mode: '0644'
+  notify:
+    - Reload systemd
+    - Restart SonarQube
+
+- name: Enable and start SonarQube service
+  systemd:
+    name: sonarqube
+    state: started
+    enabled: true

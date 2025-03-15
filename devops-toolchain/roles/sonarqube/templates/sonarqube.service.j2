@@ -1,0 +1,15 @@
+[Unit]
+Description=SonarQube Service
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+User={{ sonarqube_user }}
+Environment="JAVA_HOME={{ app_dir }}/openjdk21"
+ExecStart={{ app_dir }}/openjdk21/bin/java -jar {{ app_dir }}/sonarqube/lib/sonar-application-{{ sonarqube_version }}.jar
+LimitNOFILE=131072
+LimitNPROC=8192
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
