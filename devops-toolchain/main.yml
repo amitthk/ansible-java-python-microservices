@@ -43,7 +43,7 @@
       user:
         name: "{{ item }}"
         system: yes
-        shell: /sbin/nologin
+        shell: /bin/bash
         create_home: no
       loop:
         - gitea
@@ -118,6 +118,19 @@
         src: "/tmp/golang.tar.gz"
         dest: "{{ app_dir }}"
         creates: "{{ app_dir }}/go"
+
+    - name: Ensure openjdk21 ownership and executable permission
+      file:
+        path: "{{ app_dir }}/openjdk21"
+        state: directory
+        recurse: yes
+        owner: root
+        group: root
+        mode: "0755"
+      loop:
+        - "{{ app_dir }}/openjdk21"
+        - "{{ app_dir }}/python3"
+        - "{{ app_dir }}/go"
 
     - name: Install PostgreSQL
       dnf:
