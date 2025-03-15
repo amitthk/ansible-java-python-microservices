@@ -3,9 +3,13 @@ Description=Nexus Repository Manager
 After=network.target
 
 [Service]
+Type=forking
+ExecStart={{ app_dir }}/nexus/bin/nexus start
+ExecStop={{ app_dir }}/nexus/bin/nexus stop
 User=nexus
-ExecStart={{ app_dir }}/nexus/bin/nexus run
-Restart=always
+Restart=on-abort
+Environment=INSTALL4J_JAVA_HOME={{ app_dir }}/openjdk21
+LimitNOFILE=65536
 
 [Install]
 WantedBy=multi-user.target

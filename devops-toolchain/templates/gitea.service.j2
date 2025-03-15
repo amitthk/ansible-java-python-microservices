@@ -1,0 +1,13 @@
+[Unit]
+Description=Gitea Service
+After=network.target
+
+[Service]
+User=gitea
+Environment="PATH={{ app_dir }}/openjdk21/bin:{{ app_dir }}/python3/bin:{{ app_dir }}/golang/bin:/usr/bin:/bin"
+WorkingDirectory={{ app_dir }}/gitea
+ExecStart={{ app_dir }}/gitea/gitea web
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

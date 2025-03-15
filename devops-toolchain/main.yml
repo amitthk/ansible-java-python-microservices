@@ -103,6 +103,23 @@
         dest: "{{ app_dir }}"
         creates: "{{ app_dir }}/go"
 
+    - name: Install PostgreSQL
+      dnf:
+        name: postgresql-server
+        state: present
+
+    - name: Initialize PostgreSQL database
+      command: postgresql-setup --initdb
+      args:
+        creates: /var/lib/pgsql/data/PG_VERSION
+
+    - name: Enable and start PostgreSQL service
+      systemd:
+        name: postgresql
+        state: started
+        enabled: true
+
+
     - name: Download Gitea binary
       get_url:
         url: "{{ gitea_url }}"
