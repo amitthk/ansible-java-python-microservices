@@ -18,6 +18,7 @@
       dnf:
         name:
           - openssl-devel
+          - libffi-devel
           - gcc
           - gcc-c++
           - make
