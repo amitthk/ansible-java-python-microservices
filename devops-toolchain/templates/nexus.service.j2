@@ -4,9 +4,10 @@ After=network.target
 
 [Service]
 Type=forking
+User=nexus
+WorkingDirectory={{ app_dir }}/nexus
 ExecStart={{ app_dir }}/nexus/bin/nexus start
 ExecStop={{ app_dir }}/nexus/bin/nexus stop
-User=nexus
 Restart=on-abort
 Environment=INSTALL4J_JAVA_HOME={{ app_dir }}/openjdk21
 LimitNOFILE=65536

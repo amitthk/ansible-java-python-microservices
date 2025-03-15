@@ -165,6 +165,24 @@
         remote_src: yes
         creates: "{{ app_dir }}/nexus/bin/nexus"
 
+    - name: Ensure Sonatype-work directory structure exists with correct permissions
+      file:
+        path: "{{ app_dir }}/sonatype-work/nexus3"
+        state: directory
+        owner: nexus
+        group: nexus
+        mode: '0755'
+        recurse: yes
+
+    - name: Ensure correct ownership for Nexus application directory
+      file:
+        path: "{{ app_dir }}/nexus"
+        state: directory
+        owner: nexus
+        group: nexus
+        recurse: yes
+
+
     - name: Download Jenkins WAR
       get_url:
         url: "{{ jenkins_url }}"
