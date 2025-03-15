@@ -344,5 +344,5 @@
           - sonarqube_data:/opt/apps/sonarqube/data
           - sonarqube_extensions:/opt/apps/sonarqube/extensions
           - sonarqube_logs:/opt/apps/sonarqube/logs
-        vars:
-          ansible_python_interpreter: "{{ app_dir }}/python3/bin/python3"
+      vars:
+        ansible_python_interpreter: "{{ app_dir }}/python3/bin/python3"
