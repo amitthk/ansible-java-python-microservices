@@ -4,12 +4,14 @@
   become: true
 
   vars:
+    architecture: "arm64" # Set to "amd64" or "arm64"
+    architecture_alias: "aarch64" # Set to "amd64" or "aarch64" as per architecture
     app_dir: /opt/apps
-    java_url: "https://corretto.aws/downloads/latest/amazon-corretto-21-x64-linux-jdk.tar.gz"
+    java_url: "https://corretto.aws/downloads/latest/amazon-corretto-21-{{ architecture_alias }}-linux-jdk.tar.gz"
     python_url: "https://www.python.org/ftp/python/3.11.11/Python-3.11.11.tar.xz"
-    golang_url: "https://go.dev/dl/go1.24.1.linux-amd64.tar.gz"
-    gitea_url: "https://dl.gitea.com/gitea/1.23.3/gitea-1.23.3-linux-amd64.xz"
-    nexus_url: "https://download.sonatype.com/nexus/3/nexus-unix-aarch64-3.78.1-02.tar.gz"
+    golang_url: "https://go.dev/dl/go1.24.1.linux-{{ architecture }}.tar.gz"
+    gitea_url: "https://dl.gitea.com/gitea/1.23.3/gitea-1.23.3-linux-{{ architecture }}"
+    nexus_url: "https://download.sonatype.com/nexus/3/nexus-unix-{{ architecture_alias }}-3.78.1-02.tar.gz"
     jenkins_url: "https://get.jenkins.io/war-stable/latest/jenkins.war"
     sonarqube_url: "https://binaries.sonarsource.com/sonarqube/sonarqube-5.1.2.zip"
 
@@ -19,6 +21,13 @@
         name:
           - openssl-devel
           - libffi-devel
+          - zlib-devel
+          - readline-devel
+          - sqlite-devel
+          - bzip2-devel
+          - xz-devel
+          - tk-devel
+          - uuid-devel
           - gcc
           - gcc-c++
           - make
@@ -53,33 +62,54 @@
         - jenkins
         - sonarqube
 
+    - name: Create Java and Python directories
+      file:
+        path: "{{ item }}"
+        state: directory
+      loop:
+        - "{{ app_dir }}/openjdk21"
+        - "{{ app_dir }}/python3"
+
     - name: Install Amazon Corretto JDK21
       unarchive:
         src: "{{ java_url }}"
-        dest: "{{ app_dir }}"
+        dest: "{{ app_dir }}/openjdk21"
         remote_src: yes
+        creates: "{{ app_dir }}/openjdk21/bin/java"
 
     - name: Install Python 3.11
       shell: |
         cd /tmp
-        wget {{ python_url }}
+        if [ ! -f Python-3.11.11.tar.xz ]; then wget {{ python_url }}; fi
         tar -xf Python-3.11.11.tar.xz
         cd Python-3.11.11
-        ./configure --prefix={{ app_dir }}/python3.11
-        make
+        ./configure --prefix={{ app_dir }}/python3 --enable-optimizations
+        make -j$(nproc)
         make install
+      args:
+        creates: "{{ app_dir }}/python3/bin/python3.11"
+
+    - name: Download Golang
+      get_url:
+        url: "{{ golang_url }}"
+        dest: "/tmp/golang.tar.gz"
+        mode: '0644'
+      args:
+        creates: "/tmp/golang.tar.gz"
 
     - name: Install Golang
       unarchive:
-        src: "{{ golang_url }}"
+        src: "/tmp/golang.tar.gz"
         dest: "{{ app_dir }}"
         creates: "{{ app_dir }}/go"
 
-    - name: Setup Gitea
-      unarchive:
-        src: "{{ gitea_url }}"
-        dest: "{{ app_dir }}/gitea"
-        remote_src: yes
+    - name: Download Gitea binary
+      get_url:
+        url: "{{ gitea_url }}"
+        dest: "{{ app_dir }}/gitea/gitea"
+        mode: '0755'
+      args:
+        creates: "{{ app_dir }}/gitea/gitea"
 
     - name: Setup Nexus
       unarchive:
@@ -87,11 +117,15 @@
         dest: "{{ app_dir }}/nexus"
         extra_opts: ["--strip-components=1"]
         remote_src: yes
+        creates: "{{ app_dir }}/nexus/bin/nexus"
 
     - name: Download Jenkins WAR
       get_url:
         url: "{{ jenkins_url }}"
         dest: "{{ app_dir }}/jenkins/jenkins.war"
+        mode: '0644'
+      args:
+        creates: "{{ app_dir }}/jenkins/jenkins.war"
 
     - name: Setup SonarQube
       unarchive:
@@ -99,6 +133,7 @@
         dest: "{{ app_dir }}/sonarqube"
         remote_src: yes
         extra_opts: ["--strip-components=1"]
+        creates: "{{ app_dir }}/sonarqube/bin"
 
     - name: Enable and start systemd services
       systemd:
