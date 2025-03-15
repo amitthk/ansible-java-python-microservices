@@ -4,9 +4,8 @@ After=network.target
 
 [Service]
 User=sonarqube
-Environment="JAVA_HOME={{ app_dir }}/openjdk21"
-ExecStart={{ app_dir }}/sonarqube/bin/linux-x86-64/sonar.sh start
-ExecStop={{ app_dir }}/sonarqube/bin/linux-x86-64/sonar.sh stop
+ExecStart={{ app_dir }}/openjdk21/bin/java -jar {{ app_dir }}/sonarqube/lib/sonar-application-5.1.2.jar
+Environment=JAVA_HOME={{ app_dir }}/openjdk21
 Restart=always
 LimitNOFILE=65536
 LimitNPROC=4096
