@@ -247,19 +247,18 @@
         - sonarqube
 
     - name: Add Docker CE repository
-      dnf:
-        name: dnf-plugins-core
-        state: present
-
-    - name: Enable Docker CE repo
-      command: dnf config-manager --add-repo https://download.docker.com/linux/fedora/docker-ce.repo
+      shell: |
+        curl --remote-name https://download.docker.com/linux/fedora/docker-ce.repo
+        install --owner 0 --group 0 --mode 644 docker-ce.repo /etc/yum.repos.d/docker-ce.repo
       args:
         creates: /etc/yum.repos.d/docker-ce.repo
 
-    - name: Install Docker
-      dnf:
-        name: docker-ce
-        state: present
+    - name: Install Docker CE and override existing packages
+      shell: rpm-ostree override remove moby-engine containerd runc docker-cli --install docker-ce --reboot
+
+    - name: Ensure Docker Python library is installed
+      pip:
+        name: docker
 
     - name: Start and enable Docker service
       systemd:
