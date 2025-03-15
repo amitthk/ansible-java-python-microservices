@@ -308,37 +308,28 @@
         name:
           - psycopg2-binary
 
-    - name: Ensure PostgreSQL database exists
-      become: true
-      become_user: postgres
+    - name: Create PostgreSQL database explicitly
       shell: |
-        psql -c "SELECT 1 FROM pg_database WHERE datname='{{ sonarqube_db }}'" | grep -q {{ sonarqube_db }} || createdb -E UTF8 {{ sonarqube_db }}
+        sudo -u postgres psql -tc "SELECT 1 FROM pg_database WHERE datname='{{ sonarqube_db }}'" | grep -q 1 || sudo -u postgres createdb -E UTF8 {{ sonarqube_db }}
 
-    - name: Create PostgreSQL user
-      become: true
-      become_user: postgres
+    - name: Create PostgreSQL user explicitly
       shell: |
-        psql -c "DO \$$
+        sudo -u postgres psql -c "DO \\
+        \$\$
         BEGIN
-          IF NOT EXISTS (
-            SELECT FROM pg_catalog.pg_roles WHERE rolname = '{{ sonarqube_db_user }}'
-          ) THEN
+          IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = '{{ sonarqube_db_user }}') THEN
             CREATE ROLE {{ sonarqube_db_user }} LOGIN PASSWORD '{{ sonarqube_db_password }}';
           END IF;
         END
-        \$$;"
+        \$\$;"
 
-    - name: Grant privileges on SonarQube database
-      become: true
-      become_user: postgres
+    - name: Grant all privileges to PostgreSQL user
       shell: |
-        psql -c "GRANT ALL PRIVILEGES ON DATABASE {{ sonarqube_db }} TO {{ sonarqube_db_user }};"
+        sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE {{ sonarqube_db }} TO {{ sonarqube_db_user }};"
 
     - name: Set PostgreSQL user schema search path
-      become: true
-      become_user: postgres
       shell: |
-        psql -d {{ sonarqube_db }} -c "ALTER USER {{ sonarqube_db_user }} SET search_path TO sonarqube_schema;"
+        sudo -u postgres psql -c "ALTER USER {{ sonarqube_db_user }} SET search_path TO sonarqube_schema;"
 
     - name: Run SonarQube container
       docker_container:
