@@ -340,9 +340,9 @@
         ports:
           - "9000:9000"
         env:
-          SONAR_JDBC_URL: "jdbc:postgresql://localhost:5432/{{ sonarqube_db }}"
-          SONAR_JDBC_USERNAME: "{{ sonarqube_db_user }}"
-          SONAR_JDBC_PASSWORD: "{{ sonarqube_db_password }}"
+          SONAR_JDBC_URL: "jdbc:postgresql://localhost:5432/{{ database_users[0].db }}"
+          SONAR_JDBC_USERNAME: "{{ database_users[0].name }}"
+          SONAR_JDBC_PASSWORD: "{{ database_users[0].password }}"
         volumes:
           - sonarqube_data:/opt/apps/sonarqube/data
           - sonarqube_extensions:/opt/apps/sonarqube/extensions
