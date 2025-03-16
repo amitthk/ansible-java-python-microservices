@@ -43,19 +43,27 @@
       loop_control:
         loop_var: item
 
-    - name: Allow password authentication for PostgreSQL users
-      lineinfile:
+    - name: Configure PostgreSQL to use md5 authentication
+      replace:
         path: /var/lib/pgsql/data/pg_hba.conf
-        regexp: "^host[ \t]+{{ item.db }}[ \t]+{{ item.name }}[ \t]+127.0.0.1/32[ \t]+ident"
-        line: "host    {{ item.db }}    {{ item.name }}    127.0.0.1/32    md5"
-        state: present
-      loop: "{{ database_users }}"
+        regexp: '^(host\s+.*\s+.*\s+.*)peer$'
+        replace: '\1md5'
       notify: Restart PostgreSQL
 
-    - name: Restart PostgreSQL
-      systemd:
-        name: postgresql
-        state: restarted
+    - name: Allow PostgreSQL user to use socket authentication
+      lineinfile:
+        path: /var/lib/pgsql/data/pg_hba.conf
+        line: "local   all             postgres                                peer"
+        insertafter: EOF
+        state: present
+      notify: Restart PostgreSQL
+
+    - name: Set PostgreSQL to listen on all interfaces
+      lineinfile:
+        path: /var/lib/pgsql/data/postgresql.conf
+        regexp: '^#?listen_addresses'
+        line: "listen_addresses = '*'"
+      notify: Restart PostgreSQL
 
   handlers:
     - name: Restart PostgreSQL
