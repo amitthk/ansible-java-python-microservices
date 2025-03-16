@@ -25,23 +25,11 @@
         state: started
         enabled: true
 
-    - name: Enable and start PostgreSQL service
-      systemd:
-        name: postgresql
-        state: started
-        enabled: true
-
     - name: Install PostgreSQL Python dependencies
       pip:
         executable: "{{ app_dir }}/python3/bin/pip3.11"
         name:
           - psycopg2-binary
-
-    - name: Create PostgreSQL databases and users
-      include_tasks: pgsql_create_db.yml
-      loop: "{{ database_users }}"
-      loop_control:
-        loop_var: item
 
     - name: Configure PostgreSQL to use md5 authentication
       replace:
@@ -64,6 +52,12 @@
         regexp: '^#?listen_addresses'
         line: "listen_addresses = '*'"
       notify: Restart PostgreSQL
+
+    - name: Create PostgreSQL databases and users
+      include_tasks: pgsql_create_db.yml
+      loop: "{{ database_users }}"
+      loop_control:
+        loop_var: item
 
   handlers:
     - name: Restart PostgreSQL
