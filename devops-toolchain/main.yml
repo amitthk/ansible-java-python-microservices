@@ -222,8 +222,16 @@
       args:
         creates: "{{ app_dir }}/sonarqube/bin"
 
-    - name: Disable SELinux for current session
+    - name: Check if SELinux is enabled
+      command: getenforce
+      register: selinux_status
+      changed_when: false
+      ignore_errors: true
+
+    - name: Disable SELinux if enabled
       command: setenforce 0
+      when: selinux_status.stdout == "Enforcing"
+
 
     - name: Ensure SELinux is permanently disabled
       lineinfile:
