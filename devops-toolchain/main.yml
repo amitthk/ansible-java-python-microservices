@@ -222,6 +222,15 @@
       args:
         creates: "{{ app_dir }}/sonarqube/bin"
 
+    - name: Disable SELinux for current session
+      command: setenforce 0
+
+    - name: Ensure SELinux is permanently disabled
+      lineinfile:
+        path: /etc/selinux/config
+        regexp: '^SELINUX='
+        line: 'SELINUX=disabled'
+
     - name: Deploy systemd service files from Jinja templates
       template:
         src: "templates/{{ item }}.service.j2"
