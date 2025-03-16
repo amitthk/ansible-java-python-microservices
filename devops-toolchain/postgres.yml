@@ -31,20 +31,24 @@
         name:
           - psycopg2-binary
 
+    - name: Create PostgreSQL databases and users
+      include_tasks: pgsql_create_db.yml
+      loop: "{{ database_users }}"
+      loop_control:
+        loop_var: item
+
     - name: Configure PostgreSQL to use md5 authentication
       replace:
         path: /var/lib/pgsql/data/pg_hba.conf
         regexp: '^(host\s+.*\s+.*\s+.*)peer$'
         replace: '\1md5'
-      notify: Restart PostgreSQL
 
     - name: Allow PostgreSQL user to use socket authentication
       lineinfile:
         path: /var/lib/pgsql/data/pg_hba.conf
-        line: "local   all             postgres                                peer"
+        line: "local   all             postgres        0.0.0.0/0            peer"
         insertafter: EOF
         state: present
-      notify: Restart PostgreSQL
 
     - name: Set PostgreSQL to listen on all interfaces
       lineinfile:
@@ -52,12 +56,6 @@
         regexp: '^#?listen_addresses'
         line: "listen_addresses = '*'"
       notify: Restart PostgreSQL
-
-    - name: Create PostgreSQL databases and users
-      include_tasks: pgsql_create_db.yml
-      loop: "{{ database_users }}"
-      loop_control:
-        loop_var: item
 
   handlers:
     - name: Restart PostgreSQL
