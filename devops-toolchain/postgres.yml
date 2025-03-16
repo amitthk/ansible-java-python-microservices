@@ -56,3 +56,9 @@
       systemd:
         name: postgresql
         state: restarted
+
+  handlers:
+    - name: Restart PostgreSQL
+      systemd:
+        name: postgresql
+        state: restarted
