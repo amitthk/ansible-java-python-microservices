@@ -1,0 +1,311 @@
+* Build your own build and deploy automation (CI/CD) platform using open source tools
+
+In this project we take a look at building a CI/CD platform using open source tools like Gitea, Jenkins, Sonarqube, Sonatype Nexus, postgresql etc.
+
+The article is divided into two parts. In the first part we will build the CICD platform using Ansible playbook.
+
+In the second part we will build a sample spring boot microservice and deploy it to the CICD platform.
+
+
+Lets begin with setting up our CICD platform using Ansible playbook.
+
+** Setting up the CICD platform using Ansible playbook
+
+This demo CICD platform is build on single VM. But the ansible playbook can be easily modified to deploy the respective components to multiple VMs.
+
+First think you will need to do is to install ansible on your local machine. You can install ansible using the following commands:
+
+#+BEGIN_SRC 
+#If you do not have python3 and pip3 installed on your machine, install them using the following commands:
+
+export PYTHON_URL=https://www.python.org/ftp/python/3.11.11/Python-3.11.11.tar.xz
+export APP_DIR=/opt/apps
+
+cd /tmp
+if [ ! -f Python-3.11.11.tar.xz ]; then wget {{ python_url }}; fi
+tar -xf Python-3.11.11.tar.xz
+cd Python-3.11.11
+./configure --prefix=/opt/apps/python3 --enable-optimizations
+make -j$(nproc)
+make install
+
+#+END_SRC
+
+Once you have python3 and pip3 installed on your machine, you can create a virtual environment, activate the virtual environment and install ansible using the following commands:
+
+#+BEGIN_SRC 
+cd ~/
+/opt/apps/python3 -m pip install --upgrade pip
+python3 -m venv ~/venv
+source ~/venv/bin/activate
+pip install ansible
+#+END_SRC
+
+Next, clone the devops-toolchain repository to your local machine:
+
+#+BEGIN_SRC 
+git clone https://github.com/amitthk/ansible-java-python-microservices.git
+cd ansible-java-python-microservices
+#+END_SRC
+
+Create the inventory file and specify the ip address of the VM , username and how to connect to the VM. For example below I connect to the vm using ssh key and I have sudo password for elevated permissions for installation:
+
+#+BEGIN_SRC
+
+vi hosts
+# For demo purpose I am install everything on same host. In real world scenario, you may want to split the hosts into different groups and call the respective group for task you're interested in.
+[all]
+localhost ansible_ssh_user=amitthakur ansible_ssh_private_key_file=/home/amitthakur/.ssh/id_rsa_devops_master ansible_become_pass=<your_secure_sudo_password>
+
+#+END_SRC
+
+Once above hosts file is created, you can run the ansible playbook to setup the CICD platform using the following command:
+
+#+BEGIN_SRC 
+ansible-playbook -i hosts main.yml
+#+END_SRC
+
+After completing the full installation of the ansible playbook explained below you will be able to see the following components running on your VM:
+
+# Considering my VM IP is 192.168.18.3:
+
+- Gitea: 
+http://192.168.18.3:3000/
+
+- Jenkins: 
+http://192.168.18.3:8080/login?from=%2F
+
+- Sonarqube:
+http://192.168.18.3:9000/
+
+- Nexus:
+http://192.168.18.3:8081/
+
+
+Let us take a look into the ansible playbook to understand how the CICD platform is setup:
+
+*** 1. Install Prerequisites
+
+The first task in the ansible playbook is to install the required packages on the VM. The required packages are:
+
+#+BEGIN_SRC 
+    - name: Install required packages
+      dnf:
+        name:
+          - openssl-devel
+          - libffi-devel
+          - zlib-devel
+          - readline-devel
+          - sqlite-devel
+          - bzip2-devel
+          - xz-devel
+          - tk-devel
+          - uuid-devel
+          - gcc
+          - gcc-c++
+          - make
+          - wget
+          - xz
+          - unzip
+          - tar
+          - systemd
+          - git
+        state: present
+
+    - name: Create service users
+      user:
+        name: "{{ item }}"
+        system: yes
+        shell: /bin/bash
+        create_home: yes
+        home: "{{ app_dir }}/{{ item }}"
+      loop:
+        - gitea
+        - nexus
+        - jenkins
+        - sonarqube
+
+    - name: Create app directories
+      file:
+        path: "{{ app_dir }}/{{ item }}"
+        state: directory
+        owner: "{{ item }}"
+        group: "{{ item }}"
+      loop:
+        - gitea
+        - nexus
+        - jenkins
+        - sonarqube
+
+#+END_SRC
+
+*** 2. Install OpenJDK, Python3, Golang, postgresql
+
+#+BEGIN_SRC 
+    - name: Correctly Install Corretto JDK21
+      block:
+        - name: Download Corretto JDK21
+          get_url:
+            url: "{{ java_url }}"
+            dest: "/tmp/corretto-jdk.tar.gz"
+            mode: '0644'
+            force: no
+
+        - name: Extract Corretto JDK21 to temporary location
+          unarchive:
+            src: "/tmp/corretto-jdk.tar.gz"
+            dest: "/tmp"
+            remote_src: yes
+          args:
+            creates: "/tmp/amazon-corretto-21.0.6.7.1-linux-{{ architecture_alias }}"
+
+        - name: Move extracted Corretto JDK21 files to final directory
+          shell: |
+            mkdir -p {{ app_dir }}/openjdk21
+            mv /tmp/amazon-corretto-21.0.6.7.1-linux-{{ architecture_alias }}/* {{ app_dir }}/openjdk21/
+          args:
+            creates: "{{ app_dir }}/openjdk21/bin/java"
+
+
+    - name: Install Python 3.11
+      shell: |
+        cd /tmp
+        if [ ! -f Python-3.11.11.tar.xz ]; then wget {{ python_url }}; fi
+        tar -xf Python-3.11.11.tar.xz
+        cd Python-3.11.11
+        ./configure --prefix={{ app_dir }}/python3 --enable-optimizations
+        make -j$(nproc)
+        make install
+      args:
+        creates: "{{ app_dir }}/python3/bin/python3.11"
+
+    - name: Download Golang
+      get_url:
+        url: "{{ golang_url }}"
+        dest: "/tmp/golang.tar.gz"
+        mode: '0644'
+        force: no
+
+    - name: Install Golang
+      unarchive:
+        src: "/tmp/golang.tar.gz"
+        dest: "{{ app_dir }}"
+        creates: "{{ app_dir }}/go"
+
+    - name: Ensure openjdk21 ownership and executable permission
+      file:
+        path: "{{ app_dir }}/openjdk21"
+        state: directory
+        recurse: yes
+        owner: root
+        group: root
+        mode: "0755"
+      loop:
+        - "{{ app_dir }}/openjdk21"
+        - "{{ app_dir }}/python3"
+        - "{{ app_dir }}/go"
+
+    - name: Install PostgreSQL
+      dnf:
+        name: postgresql-server
+        state: present
+
+    - name: Initialize PostgreSQL database
+      command: postgresql-setup --initdb
+      args:
+        creates: /var/lib/pgsql/data/PG_VERSION
+
+    - name: Enable and start PostgreSQL service
+      systemd:
+        name: postgresql
+        state: started
+        enabled: true
+
+#+END_SRC
+
+The ansible playbook will deploy the following components:
+
+*** 1. Gitea
+
+Installing Gitea is fairly straightforward. We download the Gitea binary and set the executable permission:
+
+#+BEGIN_SRC 
+    - name: Download Gitea binary
+      get_url:
+        url: "{{ gitea_url }}"
+        dest: "{{ app_dir }}/gitea/gitea"
+        mode: '0755'
+        force: no
+
+#+END_SRC
+
+*** 2. Jenkins
+
+We download the Jenkins war file and run it using the java command in our systemd service:
+
+#+BEGIN_SRC 
+    - name: Download Jenkins WAR
+      get_url:
+        url: "{{ jenkins_url }}"
+        dest: "{{ app_dir }}/jenkins/jenkins.war"
+        mode: '0644'
+        force: no
+
+#+END_SRC
+
+*** 4. Sonatype Nexus
+
+Setting up Sonatype Nexus is also fairly straightforward. We download the Nexus binary and set it up:
+
+#+BEGIN_SRC 
+    - name: Setup Nexus
+      unarchive:
+        src: "{{ nexus_url }}"
+        dest: "{{ app_dir }}/nexus"
+        extra_opts: ["--strip-components=1"]
+        remote_src: yes
+        creates: "{{ app_dir }}/nexus/bin/nexus"
+
+#+END_SRC
+
+
+*** 3. Sonarqube
+
+ We download the Sonarqube binary and set it up for running as systemctl service:
+
+#+BEGIN_SRC 
+    - name: Download SonarQube
+      get_url:
+        url: "{{ sonarqube_url }}"
+        dest: "/tmp/sonarqube.zip"
+        mode: '0644'
+        force: no
+
+    - name: Extract SonarQube
+      unarchive:
+        src: "/tmp/sonarqube.zip"
+        dest: "/tmp"
+        remote_src: yes
+
+    - name: Find extracted SonarQube directory
+      find:
+        paths: "/tmp"
+        patterns: "sonarqube-*"
+        file_type: directory
+      register: sonarqube_extracted_dir
+
+    - name: Move SonarQube contents to app directory
+      shell: |
+        shopt -s dotglob
+        mv {{ sonarqube_extracted_dir.files[0].path }}/* {{ app_dir }}/sonarqube/
+      args:
+        creates: "{{ app_dir }}/sonarqube/bin"
+
+#+END_SRC
+
+
+Once the ansible playbook is run successfully, you will have the CICD platform setup on your VM.
+We can see the below screens, and you will just need to run through the initial setup screens for each of the components to setup the admin accounts and basic permissions.
+In enterprise setup you basically perform advanced integrations to LDAP, SSO, etc.
+
+In the next part of the article we will build a sample spring boot microservice and deploy it to the CICD platform.
