@@ -3,6 +3,7 @@
   hosts: all
   become: yes
   vars:
+    app_dir: /opt/apps
     database_users:
       - { name: "sonarqube", db: "sonarqube", password: "secretsqdppass#1", schema: "sonarqube_schema" }
       - { name: "gitea", db: "gitea", password: "secretgiteadppass#1", schema: "gitea_schema" }
