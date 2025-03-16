@@ -19,5 +19,3 @@
           shell: |
             sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE {{ item.db }} TO {{ item.name }};"
           loop: "{{ database_users }}"
-      loop_control:
-        loop_var: item
