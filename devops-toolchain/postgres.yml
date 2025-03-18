@@ -46,7 +46,7 @@
     - name: Allow PostgreSQL user to use socket authentication
       lineinfile:
         path: /var/lib/pgsql/data/pg_hba.conf
-        line: "local   all             postgres        0.0.0.0/0            peer"
+        line: "local   all             postgres           peer"
         insertafter: EOF
         state: present
 
