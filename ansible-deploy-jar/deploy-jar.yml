@@ -34,7 +34,6 @@
         group: appadm
         mode: "0755"
       become: yes
-      become_user: opc  # Run as opc since it needs sudo
   roles:
     - { role: java_setup, become: yes, become_user: appadm }       # Run as appadm (no sudo)
     - { role: deploy_jar, become: yes, become_user: appadm }  # Run as appadm (no sudo)
