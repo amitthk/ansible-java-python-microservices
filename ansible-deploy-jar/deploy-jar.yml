@@ -15,6 +15,11 @@
     ansible_ssh_private_key_file: "{{ lookup('env', 'VM_SSH_KEY') }}"
     service_name: "{{ lookup('env', 'SERVICE_NAME') }}"
     jar_timestamp: "{{ lookup('env', 'JAR_TIMESTAMP') }}"
+    datasource_url: "{{ lookup('env', 'DATASOURCE_URL') }}"
+    db_username: "{{ lookup('env', 'DB_USERNAME') }}"
+    db_password: "{{ lookup('env', 'DB_PASSWORD') }}"
+
+
     jar_path: "/opt/apps/{{ service_name }}"
     jar_file: "/opt/apps/{{ service_name }}/{{ service_name }}.jar"
     java_home: "/opt/apps/openjdk21"

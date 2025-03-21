@@ -3,10 +3,14 @@ Description={{ service_name }}
 After=network.target
 
 [Service]
-User=appadm
+User={{ app_user }}
 WorkingDirectory={{ jar_path }}
 Environment="JAVA_HOME={{ java_home }}"
-ExecStart={{ java_home }}/bin/java -jar {{ jar_file }}
+ExecStart={{ java_home }}/bin/java -jar \
+ -Dspring.datasource.url={{ datasource_url }} \
+ -Dspring.datasource.username={{ db_username }} \
+ -Dspring.datasource.password={{ db_password }} \
+ {{ jar_file }}
 Restart=always
 RestartSec=10
 
