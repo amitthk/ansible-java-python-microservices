@@ -1,0 +1,40 @@
+# site.yml
+---
+- name: Install Kiwi TCMS and MantisBT with PostgreSQL backend
+  hosts: localhost
+  become: yes
+
+  vars:
+    kiwitcms_database_name: "{{ lookup('env', 'DATABASE_NAME_KIWITCMS') }}"
+    kiwitcms_database_user: "{{ lookup('env', 'DATABASE_USER_KIWITCMS') }}"
+    kiwitcms_database_password: "{{ lookup('env', 'DATABASE_PASSWORD_KIWITCMS') }}"
+
+    mantisbt_database_name: "{{ lookup('env', 'DATABASE_NAME_MANTISBT') }}"
+    mantisbt_database_user: "{{ lookup('env', 'DATABASE_USER_MANTISBT') }}"
+    mantisbt_database_password: "{{ lookup('env', 'DATABASE_PASSWORD_MANTISBT') }}"
+
+    kiwi_repo: "{{ lookup('env', 'KIWI_REPO') }}"
+    mantisbt_repo: "{{ lookup('env', 'MANTISBT_REPO') }}"
+
+  roles:
+    - role: local-python
+
+    - role: postgresql
+
+    - role: virtualenv
+      vars:
+        repository: "{{ kiwi_repo }}"
+        requirements: /opt/Kiwi/requirements.txt
+
+    - role: kiwitcms
+      vars:
+        database_name: "{{ kiwitcms_database_name }}"
+        database_user: "{{ kiwitcms_database_user }}"
+        database_password: "{{ kiwitcms_database_password }}"
+
+    - role: mantisbt
+      vars:
+        database_name: "{{ mantisbt_database_name }}"
+        database_user: "{{ mantisbt_database_user }}"
+        database_password: "{{ mantisbt_database_password }}"
+

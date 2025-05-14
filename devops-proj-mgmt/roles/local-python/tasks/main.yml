@@ -1,0 +1,20 @@
+# roles/local-python/tasks/main.yml
+---
+- name: Download Python 3
+  get_url:
+    url: https://www.python.org/ftp/python/3.9.7/Python-3.9.7.tgz
+    dest: /tmp/
+
+- name: Extract Python 3 tarball
+  unarchive:
+    src: /tmp/Python-3.9.7.tgz
+    dest: /tmp/
+    compression: gzip
+
+- name: Build and install Python 3
+  shell: |
+    cd /tmp/Python-3.9.7
+    ./configure --prefix=/opt/apps/python3
+    make && make install
+  become: yes
+

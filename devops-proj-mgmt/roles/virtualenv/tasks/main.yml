@@ -1,0 +1,35 @@
+# roles/virtualenv/tasks/main.yml
+---
+- name: Create virtual environment /opt/apps/venv3
+  shell: |
+    /opt/apps/python3/bin/python3 -m venv /opt/apps/venv3
+  become: yes
+
+- name: Activate the virtual environment
+  block:
+    - name: Activate the virtual environment for all tasks in this block
+      shell: source /opt/apps/venv3/bin/activate
+      args:
+        chdir: /opt/apps/
+
+    tasks:
+      - name: Install pip and requirements.txt
+        pip:
+          executable: pip3
+          requirements: requirements.txt
+          state: present
+
+      - name: Clone Kiwi TCMS repository from GitHub
+        git:
+          repo: "{{ kiwi_repo }}"
+          dest: /opt/Kiwi
+          recursive: yes
+
+      - name: Clone MantisBT repository from GitHub
+        git:
+          repo: "{{ mantisbt_repo }}"
+          dest: /opt/MantisBT
+          recursive: yes
+
+  end
+

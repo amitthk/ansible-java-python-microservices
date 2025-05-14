@@ -1,0 +1,59 @@
+# roles/mantisbt/tasks/main.yml
+---
+- name: Download and install MantisBT
+  apt:
+    name: python3-pip
+    state: present
+  become: yes
+
+  - name: Install required packages
+    apt:
+      name: ['python3-dev', 'libpq-dev']
+      state: present
+    become: yes
+
+- name: Clone MantisBT repository from GitHub
+  git:
+    repo: "{{ repository }}"
+    dest: /opt/MantisBT
+    recursive: yes
+
+- name: Install dependencies
+  pip:
+    requirements: /opt/MantisBT/requirements.txt
+    state: present
+
+- name: Configure MantisBT settings
+  template:
+    src: templates/config_localhost_inc.php.j2
+    dest: /opt/MantisBT/config/config_localhost.inc.php
+  become: no
+
+- name: Create database tables
+  postgresql_db:
+    name: "{{ mantisbt_database_name }}"
+    db: yes
+    state: present
+    target: schema
+  become: yes
+
+- name: Run MantisBT migration scripts
+  command: php admin/config_localhost_inc.php --create-db-tables
+  args:
+    chdir: /opt/MantisBT
+  become: no
+
+- name: Create database user and grant privileges
+  postgresql_user:
+    name: "{{ mantisbt_database_user }}"
+    password: "{{ mantisbt_database_password }}"
+    roles:
+      - "{{ mantisbt_database_name }}"
+  become: yes
+
+- name: Configure MantisBT to use PostgreSQL
+  template:
+    src: templates/config_localhost_inc.php.j2
+    dest: /opt/MantisBT/config/config_localhost.inc.php
+  become: no
+

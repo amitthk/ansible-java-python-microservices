@@ -1,0 +1,17 @@
+{% set database_name = 'database_name' | default(kiwitcms_database_name) %}
+{% set database_user = 'database_user' | default(kiwitcms_database_user) %}
+{% set database_password = 'database_password' | default(kiwitcms_database_password) %}
+
+import os
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': '{{ database_name }}',
+        'USER': '{{ database_user }}',
+        'PASSWORD': '{{ database_password }}',
+        'HOST': 'localhost',
+        'PORT': '5432'
+    }
+}
+

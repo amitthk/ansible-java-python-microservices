@@ -1,0 +1,22 @@
+# roles/postgresql/tasks/main.yml
+---
+- name: Install PostgreSQL
+  apt:
+    name: "{{ postgresql_server_package }}"
+    state: present
+  become: yes
+
+- name: Ensure database exists
+  postgresql_db:
+    name: "{{ kiwitcms_database_name }}"
+    state: present
+  become: yes
+
+- name: Create user and grant privileges
+  postgresql_user:
+    name: "{{ kiwitcms_database_user }}"
+    password: "{{ kiwitcms_database_password }}"
+    roles:
+      - "{{ kiwitcms_database_name }}"
+  become: yes
+

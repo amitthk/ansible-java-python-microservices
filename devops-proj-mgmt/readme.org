@@ -1,0 +1,14 @@
+# Install postgres mantis and kiwitcms
+
+
+Installing ansible on debian/ubuntu if it doesn't exist:
+
+``sudo apt-get update && sudo apt-get install python3-pip -y
+``sudo pip3 install ansible
+
+
+Running the playbook:
+
+``export $(cat .env | grep -v '^#' | xargs)
+``ansible-playbook -i inventory site.yml
+

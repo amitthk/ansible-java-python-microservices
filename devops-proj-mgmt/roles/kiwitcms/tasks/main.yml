@@ -1,0 +1,60 @@
+# roles/kiwitcms/tasks/main.yml
+---
+- name: Download and install Kiwi TCMS
+  apt:
+    name: python3-pip
+    state: present
+  become: yes
+
+  - name: Install required packages
+    apt:
+      name: ['python3-dev', 'libpq-dev']
+      state: present
+    become: yes
+
+- name: Clone Kiwi TCMS repository from GitHub
+  git:
+    repo: "{{ repository }}"
+    dest: /opt/Kiwi
+    recursive: yes
+
+- name: Install dependencies
+  pip:
+    requirements: /opt/Kiwi/requirements.txt
+    state: present
+
+- name: Configure Kiwi TCMS settings
+  template:
+    src: templates/settings.py.j2
+    dest: /opt/Kiwi/settings.py
+    mode: '0644'
+  become: no
+
+- name: Create database tables
+  postgresql_db:
+    name: "{{ kiwitcms_database_name }}"
+    db: yes
+    state: present
+    target: schema
+  become: yes
+
+- name: Run Kiwi TCMS migration scripts
+  command: python3 /opt/Kiwi/manage.py migrate
+  args:
+    chdir: /opt/Kiwi
+  become: no
+
+- name: Create database user and grant privileges
+  postgresql_user:
+    name: "{{ kiwitcms_database_user }}"
+    password: "{{ kiwitcms_database_password }}"
+    roles:
+      - "{{ kiwitcms_database_name }}"
+  become: yes
+
+- name: Configure Kiwi TCMS to use PostgreSQL
+  template:
+    src: templates/settings.py.j2
+    dest: /opt/Kiwi/settings.py
+  become: no
+
