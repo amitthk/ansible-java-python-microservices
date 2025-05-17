@@ -1,0 +1,22 @@
+---
+- name: Download Corretto JDK21
+  get_url:
+    url: "{{ java_url }}"
+    dest: "/tmp/corretto-jdk.tar.gz"
+    mode: '0644'
+    force: no
+
+- name: Extract Corretto JDK21 to temporary location
+  unarchive:
+    src: "/tmp/corretto-jdk.tar.gz"
+    dest: "/tmp"
+    remote_src: yes
+  args:
+    creates: "/tmp/amazon-corretto-21.0.6.7.1-linux-{{ architecture_alias }}"
+
+- name: Move extracted Corretto JDK21 files to final directory
+  shell: |
+    mkdir -p {{ app_dir }}/openjdk21
+    mv /tmp/amazon-corretto-21.0.6.7.1-linux-{{ architecture_alias }}/* {{ app_dir }}/openjdk21/
+  args:
+    creates: "{{ app_dir }}/openjdk21/bin/java"

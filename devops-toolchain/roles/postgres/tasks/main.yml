@@ -1,0 +1,28 @@
+---
+- name: Install PostgreSQL
+  dnf:
+    name: postgresql-server
+    state: present
+
+- name: Initialize PostgreSQL database
+  command: postgresql-setup --initdb
+  args:
+    creates: /var/lib/pgsql/data/PG_VERSION
+
+- name: Enable and start PostgreSQL service
+  systemd:
+    name: postgresql
+    state: started
+    enabled: true
+
+- name: Install PostgreSQL Python dependencies
+  pip:
+    executable: "{{ app_dir }}/python3/bin/pip3.11"
+    name:
+      - psycopg2-binary
+
+- name: Create PostgreSQL databases and users
+  include_tasks: pgsql_create_db.yml
+  loop: "{{ database_users }}"
+  loop_control:
+    loop_var: item

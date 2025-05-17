@@ -1,0 +1,13 @@
+---
+
+- name: Install Python 3.11
+  shell: |
+    cd /tmp
+    if [ ! -f Python-3.11.11.tar.xz ]; then wget {{ python_url }}; fi
+    tar -xf Python-3.11.11.tar.xz
+    cd Python-3.11.11
+    ./configure --prefix={{ app_dir }}/python3 --enable-optimizations
+    make -j$(nproc)
+    make install
+  args:
+    creates: "{{ app_dir }}/python3/bin/python3.11"

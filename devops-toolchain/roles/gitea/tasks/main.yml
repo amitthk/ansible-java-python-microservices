@@ -1,0 +1,7 @@
+---
+- name: Download Gitea binary
+  get_url:
+    url: "{{ gitea_url }}"
+    dest: "{{ app_dir }}/gitea/gitea"
+    mode: '0755'
+    force: no

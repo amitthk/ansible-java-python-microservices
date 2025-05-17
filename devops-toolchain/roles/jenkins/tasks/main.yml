@@ -1,0 +1,7 @@
+---
+- name: Download Jenkins WAR
+  get_url:
+    url: "{{ jenkins_url }}"
+    dest: "{{ app_dir }}/jenkins/jenkins.war"
+    mode: '0644'
+    force: no

@@ -1,0 +1,13 @@
+---
+- name: Download Golang
+  get_url:
+    url: "{{ golang_url }}"
+    dest: "/tmp/golang.tar.gz"
+    mode: '0644'
+    force: no
+
+- name: Install Golang
+  unarchive:
+    src: "/tmp/golang.tar.gz"
+    dest: "{{ app_dir }}"
+    creates: "{{ app_dir }}/go"

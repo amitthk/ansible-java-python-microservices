@@ -1,0 +1,77 @@
+- name: Ensure openjdk21 ownership and executable permission
+  file:
+    path: "{{ app_dir }}/openjdk21"
+    state: directory
+    recurse: yes
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - "{{ app_dir }}/openjdk21"
+    - "{{ app_dir }}/python3"
+    - "{{ app_dir }}/go"
+
+- name: Check if SELinux is enabled
+  command: getenforce
+  register: selinux_status
+  changed_when: false
+  ignore_errors: true
+
+- name: Disable SELinux if enabled
+  command: setenforce 0
+  when: selinux_status.stdout == "Enforcing"
+
+
+- name: Ensure SELinux is permanently disabled
+  lineinfile:
+    path: /etc/selinux/config
+    regexp: '^SELINUX='
+    line: 'SELINUX=disabled'
+
+- name: Deploy systemd service files from Jinja templates
+  template:
+    src: "templates/{{ item }}.service.j2"
+    dest: "/etc/systemd/system/{{ item }}.service"
+    mode: '0644'
+  loop:
+    - gitea
+    - nexus
+    - jenkins
+    - sonarqube
+
+- name: Reload systemd daemon
+  systemd:
+    daemon_reload: true
+
+- name: Enable and start systemd services
+  systemd:
+    name: "{{ item }}"
+    enabled: true
+    state: started
+  loop:
+    - gitea
+    - nexus
+    - jenkins
+    - sonarqube
+- name: Start and enable Docker service
+  systemd:
+    name: docker
+    state: started
+    enabled: true
+
+- name: Ensure Python, Java, and Go are in PATH globally
+  copy:
+    dest: /etc/profile.d/custom-path.sh
+    content: |
+      export PATH={{ app_dir }}/python3/bin:{{ app_dir }}/openjdk21/bin:{{ app_dir }}/go/bin:$PATH
+    mode: '0755'
+
+- name: Ensure pip is installed explicitly
+  command: "{{ app_dir }}/python3/bin/python -m ensurepip"
+  args:
+    creates: "{{ app_dir }}/python3/bin/pip3"
+
+- name: Install Docker Python library using custom Python interpreter
+  pip:
+    executable: "{{ app_dir }}/python3/bin/pip3"
+    name: docker
