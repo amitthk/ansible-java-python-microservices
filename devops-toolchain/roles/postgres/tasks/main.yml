@@ -26,3 +26,41 @@
   loop: "{{ database_users }}"
   loop_control:
     loop_var: item
+
+- name: Configure PostgreSQL to use md5 authentication
+  replace:
+    path: /var/lib/pgsql/data/pg_hba.conf
+    regexp: '^(host\s+.*\s+.*\s+.*)peer$'
+    replace: '\1md5'
+
+- name: Allow PostgreSQL user to use socket authentication
+  lineinfile:
+    path: /var/lib/pgsql/data/pg_hba.conf
+    line: "local   all             postgres           peer"
+    insertafter: EOF
+    state: present
+
+- name: Set PostgreSQL to listen on all interfaces
+  lineinfile:
+    path: /var/lib/pgsql/data/postgresql.conf
+    regexp: '^#?listen_addresses'
+    line: "listen_addresses = '*'"
+  notify: Restart PostgreSQL
+
+- name: Enable and start PostgreSQL service
+  systemd:
+    name: postgresql
+    state: started
+    enabled: true
+
+- name: Install PostgreSQL Python dependencies
+  pip:
+    executable: "{{ app_dir }}/python3/bin/pip3.11"
+    name:
+      - psycopg2-binary
+
+- name: Create PostgreSQL databases and users
+  include_tasks: pgsql_create_db.yml
+  loop: "{{ database_users }}"
+  loop_control:
+    loop_var: item
