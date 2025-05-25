@@ -2,86 +2,17 @@
 - name: DevOps Toolchain Installation on Fedora
   hosts: all
   become: true
-
-  vars:
-    architecture: "arm64" # Set to "amd64" or "arm64"
-    architecture_alias: "aarch64" # Set to "amd64" or "aarch64" as per architecture
-    app_dir: /opt/apps
-    java_url: "https://corretto.aws/downloads/latest/amazon-corretto-21-{{ architecture_alias }}-linux-jdk.tar.gz"
-    python_url: "https://www.python.org/ftp/python/3.11.11/Python-3.11.11.tar.xz"
-    golang_url: "https://go.dev/dl/go1.24.1.linux-{{ architecture }}.tar.gz"
-    gitea_url: "https://dl.gitea.com/gitea/1.23.3/gitea-1.23.3-linux-{{ architecture }}"
-    nexus_url: "https://download.sonatype.com/nexus/3/nexus-unix-{{ architecture_alias }}-3.78.1-02.tar.gz"
-    jenkins_url: "https://get.jenkins.io/war-stable/latest/jenkins.war"
-    sonarqube_url: "https://binaries.sonarsource.com/sonarqube/sonarqube-5.1.2.zip"
-    database_users:
-      - { name: "sonarqube", db: "sonarqube", password: "secretsqdppass#1", schema: "sonarqube_schema" }
-      - { name: "gitea", db: "gitea", password: "secretgiteadppass#1", schema: "gitea_schema" }
-
-  tasks:
-    - name: Install required packages
-      dnf:
-        name:
-          - openssl-devel
-          - libffi-devel
-          - zlib-devel
-          - readline-devel
-          - sqlite-devel
-          - bzip2-devel
-          - xz-devel
-          - tk-devel
-          - uuid-devel
-          - gcc
-          - gcc-c++
-          - make
-          - wget
-          - xz
-          - unzip
-          - tar
-          - systemd
-          - git
-        state: present
-
-    - name: Create service users
-      user:
-        name: "{{ item }}"
-        system: yes
-        shell: /bin/bash
-        create_home: yes
-        home: "{{ app_dir }}/{{ item }}"
-      loop:
-        - gitea
-        - nexus
-        - jenkins
-        - sonarqube
-
-    - name: Create app directories
-      file:
-        path: "{{ app_dir }}/{{ item }}"
-        state: directory
-        owner: "{{ item }}"
-        group: "{{ item }}"
-      loop:
-        - gitea
-        - nexus
-        - jenkins
-        - sonarqube
-
-    - name: Create Java and Python directories
-      file:
-        path: "{{ item }}"
-        state: directory
-      loop:
-        - "{{ app_dir }}/openjdk21"
-        - "{{ app_dir }}/python3"
+  vars_files:
+    - vars/main.yml
   roles:
-      - jdk
-      - python
-      - postgres
-      - docker
-      - gitea
-      - golang
-      - jenkins
-      - nexus
+      # - prerequisites
+      # - jdk
+      # - python
+      # - postgres
+      # - docker
+      # - gitea
+      # - golang
+      # - jenkins
+      # - nexus
       - sonarqube
       - post-install-config

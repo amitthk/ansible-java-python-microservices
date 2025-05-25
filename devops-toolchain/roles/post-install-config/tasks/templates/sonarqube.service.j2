@@ -1,14 +1,18 @@
 [Unit]
-Description=SonarQube Service
-After=network.target
+Description=SonarQube service
+After=syslog.target network.target postgresql.service
 
 [Service]
-User=sonarqube
-ExecStart={{ app_dir }}/openjdk21/bin/java -jar {{ app_dir }}/sonarqube/lib/sonar-application-5.1.2.jar
-Environment=JAVA_HOME={{ app_dir }}/openjdk21
+Type=forking
+Environment="SONAR_JAVA_PATH={{ app_dir }}/openjdk17/bin/java"
+ExecStart={{ app_dir }}/sonarqube/bin/linux-x86-64/sonar.sh start
+ExecStop={{ app_dir }}/sonarqube/bin/linux-x86-64/sonar.sh stop
+User={{ sonarqube_user }}
+Group={{ sonarqube_group }}
 Restart=always
-LimitNOFILE=65536
-LimitNPROC=4096
+LimitNOFILE=131072
+LimitNPROC=8192
+TimeoutStartSec=5min
 
 [Install]
 WantedBy=multi-user.target

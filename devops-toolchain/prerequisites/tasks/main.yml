@@ -1,0 +1,57 @@
+---
+- name: Install required packages
+  dnf:
+    name:
+      - openssl-devel
+      - libffi-devel
+      - zlib-devel
+      - readline-devel
+      - sqlite-devel
+      - bzip2-devel
+      - xz-devel
+      - tk-devel
+      - uuid-devel
+      - gcc
+      - gcc-c++
+      - make
+      - wget
+      - xz
+      - unzip
+      - tar
+      - systemd
+      - git
+    state: present
+
+- name: Create service users
+  user:
+    name: "{{ item }}"
+    system: yes
+    shell: /bin/bash
+    create_home: yes
+    home: "{{ app_dir }}/{{ item }}"
+  loop:
+    - gitea
+    - nexus
+    - jenkins
+    - sonarqube
+
+- name: Create app directories
+  file:
+    path: "{{ app_dir }}/{{ item }}"
+    state: directory
+    owner: "{{ item }}"
+    group: "{{ item }}"
+  loop:
+    - gitea
+    - nexus
+    - jenkins
+    - sonarqube
+
+- name: Create Java and Python directories
+  file:
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - "{{ app_dir }}/openjdk21"
+    - "{{ app_dir }}/openjdk17"
+    - "{{ app_dir }}/python3"

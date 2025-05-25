@@ -1,0 +1,15 @@
+- name: Configure PostgreSQL database for {{ item.name}}
+  become_user: postgres
+  postgresql_db:
+    name: "{{ item.db }}"
+    encoding: UTF8
+    state: present
+
+- name: Create PostgreSQL user for {{ item.name }}
+  become_user: postgres
+  postgresql_user:
+    name: "{{ item.name }}"
+    password: "{{ item.password }}"
+    db: "{{ item.db }}"
+    priv: "ALL"
+    state: present

@@ -1,0 +1,29 @@
+# tasks/install_corretto.yml
+
+- name: Download Corretto {{ item.jdk_version_short }} JDK
+  get_url:
+    url: "{{ item.java_url }}"
+    dest: "/tmp/corretto-jdk.tar.gz"
+    mode: '0644'
+    force: no
+
+- name: Extract Corretto JDK {{ item.jdk_version_short }} to temporary location
+  unarchive:
+    src: "/tmp/corretto-jdk.tar.gz"
+    dest: "/tmp"
+    remote_src: yes
+  args:
+    creates: "/tmp/amazon-corretto-{{ item.jdk_version }}-linux-x64"
+
+- name: Move extracted Corretto JDK {{ item.jdk_version_short }} files to final directory
+  shell: |
+    mkdir -p {{ app_dir }}/openjdk{{ item.jdk_version_short }}
+    chmod -R 0755 /tmp/amazon-corretto-{{ item.jdk_version }}-linux-x64
+    mv /tmp/amazon-corretto-{{ item.jdk_version }}-linux-x64/* {{ app_dir }}/openjdk{{ item.jdk_version_short }}/
+  args:
+    creates: "{{ app_dir }}/openjdk{{ item.jdk_version_short }}/bin/java"
+
+- name: Remove the downloaded tar file
+  file:
+    dest: "/tmp/corretto-jdk.tar.gz"
+    state: absent

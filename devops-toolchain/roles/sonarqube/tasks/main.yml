@@ -1,14 +1,6 @@
 ---
-- name: Install required packages
-  dnf:
-    name:
-      - postgresql-server
-      - fontconfig
-      - libfreetype6
-      - unzip
-    state: present
-
-- name: Configure sysctl limits for Elasticsearch requirements
+# Configure sysctl for SonarQube requirements
+- name: Configure sysctl limits for SonarQube requirements
   sysctl:
     name: "{{ item.name }}"
     value: "{{ item.value }}"
@@ -18,7 +10,23 @@
     - { name: "vm.max_map_count", value: "524288" }
     - { name: "fs.file-max", value: "131072" }
 
-- name: Ensure limits are set for SonarQube user
+# Create SonarQube user
+- name: Create SonarQube group
+  group:
+    name: "{{ sonarqube_group }}"
+    state: present
+
+- name: Create SonarQube user
+  user:
+    name: "{{ sonarqube_user }}"
+    group: "{{ sonarqube_group }}"
+    system: yes
+    shell: /bin/bash
+    home: "/home/{{ sonarqube_user }}"
+    createhome: yes
+    state: present
+
+- name: Set limits for SonarQube user
   lineinfile:
     path: /etc/security/limits.conf
     line: "{{ sonarqube_user }} {{ item }}"
@@ -29,65 +37,91 @@
     - "soft nproc 8192"
     - "hard nproc 8192"
 
-- name: Initialize PostgreSQL database
-  command: postgresql-setup --initdb
-  args:
-    creates: /var/lib/pgsql/data/PG_VERSION
-
-- name: Enable and start PostgreSQL service
-  systemd:
-    name: postgresql
-    state: started
-    enabled: true
-
-- name: Configure PostgreSQL database and user
-  become_user: postgres
-  postgresql_db:
-    name: "{{ sonarqube_db_name }}"
-    encoding: UTF8
-    state: present
-
-- name: Create PostgreSQL user
-  become_user: postgres
-  postgresql_user:
-    name: "{{ sonarqube_db_user }}"
-    password: "{{ sonarqube_db_password }}"
-    priv: "ALL"
-    db: "{{ sonarqube_db_name }}"
-
 - name: Ensure SonarQube application directory exists
   file:
     path: "{{ app_dir }}/sonarqube"
     state: directory
     owner: "{{ sonarqube_user }}"
-    group: "{{ sonarqube_user }}"
+    group: "{{ sonarqube_group }}"
     mode: '0755'
 
-- name: Download SonarQube
+- name: Ensure temporary download directory exists
+  file:
+    path: "{{ app_dir }}/tmp/sonarqube-install"
+    state: directory
+    mode: '0755'
+
+- name: Download SonarQube if not already present
   get_url:
     url: "{{ sonarqube_url }}"
-    dest: "/tmp/sonarqube.zip"
+    dest: "{{ app_dir }}/tmp/sonarqube-install/sonarqube.zip"
     mode: '0644'
     force: no
 
-- name: Extract SonarQube
-  unarchive:
-    src: "/tmp/sonarqube.zip"
-    dest: "/tmp"
-    remote_src: yes
-    creates: "/tmp/sonarqube-{{ sonarqube_version }}"
+- name: Check if SonarQube is already installed
+  stat:
+    path: "{{ app_dir }}/sonarqube/bin"
+  register: sonarqube_installed
 
-- name: Move SonarQube contents explicitly
-  command: mv "/tmp/sonarqube-{{ sonarqube_version }}"/* "{{ app_dir }}/sonarqube/"
-  args:
-    creates: "{{ app_dir }}/sonarqube/bin"
+- name: Extract SonarQube to temporary directory
+  unarchive:
+    src: "{{ app_dir }}/tmp/sonarqube-install/sonarqube.zip"
+    dest: "{{ app_dir }}/tmp/sonarqube-install"
+    remote_src: yes
+    creates: "{{ app_dir }}/tmp/sonarqube-install/sonarqube-{{ sonarqube_version | default('*') }}"
+  when: not sonarqube_installed.stat.exists
+
+- name: Find extracted SonarQube directory
+  find:
+    paths: "{{ app_dir }}/tmp/sonarqube-install"
+    patterns: "sonarqube-*"
+    file_type: directory
+    recurse: no
+  register: sonarqube_dirs
+  when: not sonarqube_installed.stat.exists
+
+- name: Fail if no SonarQube directory found
+  fail:
+    msg: "No SonarQube directory found after extraction"
+  when: 
+    - not sonarqube_installed.stat.exists
+    - sonarqube_dirs.matched == 0
+
+- name: Set fact for extracted SonarQube path
+  set_fact:
+    extracted_sonarqube_path: "{{ sonarqube_dirs.files[0].path }}"
+  when: 
+    - not sonarqube_installed.stat.exists
+    - sonarqube_dirs.matched > 0
+
+- name: Move SonarQube contents to application directory
+  command: >
+    cp -r "{{ extracted_sonarqube_path }}/." "{{ app_dir }}/sonarqube/"
+  when: 
+    - not sonarqube_installed.stat.exists
+    - sonarqube_dirs.matched > 0
+  notify: Restart SonarQube
+
+- name: Ensure correct permissions for SonarQube directory
+  file:
+    path: "{{ app_dir }}/sonarqube"
+    state: directory
+    recurse: yes
+    owner: "{{ sonarqube_user }}"
+    group: "{{ sonarqube_group }}"
+
+- name: Clean up temporary extraction directory
+  file:
+    path: "{{ app_dir }}/tmp/sonarqube-install"
+    state: absent
+  when: not sonarqube_installed.stat.exists
 
 - name: Configure sonar.properties
   template:
     src: sonar.properties.j2
     dest: "{{ app_dir }}/sonarqube/conf/sonar.properties"
     owner: "{{ sonarqube_user }}"
-    group: "{{ sonarqube_user }}"
+    group: "{{ sonarqube_group }}"
     mode: '0644'
   notify: Restart SonarQube
 

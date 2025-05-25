@@ -11,3 +11,4 @@
     src: "/tmp/golang.tar.gz"
     dest: "{{ app_dir }}"
     creates: "{{ app_dir }}/go"
+    remote_src: yes

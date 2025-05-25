@@ -1,7 +1,11 @@
 ---
-- name: Install PostgreSQL
+# PostgreSQL installation and configuration
+- name: Install PostgreSQL packages
   dnf:
-    name: postgresql-server
+    name:
+      - postgresql16-server
+      - postgresql16-contrib
+      # - postgresql16-devel
     state: present
 
 - name: Initialize PostgreSQL database
@@ -9,43 +13,28 @@
   args:
     creates: /var/lib/pgsql/data/PG_VERSION
 
-- name: Enable and start PostgreSQL service
+- name: Ensure PostgreSQL service is enabled and started
   systemd:
     name: postgresql
     state: started
     enabled: true
 
-- name: Install PostgreSQL Python dependencies
-  pip:
-    executable: "{{ app_dir }}/python3/bin/pip3.11"
-    name:
-      - psycopg2-binary
-
-- name: Create PostgreSQL databases and users
-  include_tasks: pgsql_create_db.yml
-  loop: "{{ database_users }}"
-  loop_control:
-    loop_var: item
-
-- name: Configure PostgreSQL to use md5 authentication
-  replace:
-    path: /var/lib/pgsql/data/pg_hba.conf
-    regexp: '^(host\s+.*\s+.*\s+.*)peer$'
-    replace: '\1md5'
-
-- name: Allow PostgreSQL user to use socket authentication
+- name: Allow PostgreSQL connections from localhost
   lineinfile:
     path: /var/lib/pgsql/data/pg_hba.conf
-    line: "local   all             postgres           peer"
-    insertafter: EOF
+    regexp: '^host\s+all\s+all\s+127.0.0.1/32'
+    line: 'host    all             all             127.0.0.1/32            md5'
     state: present
+  notify: Restart PostgreSQL
 
-- name: Set PostgreSQL to listen on all interfaces
+- name: Configure PostgreSQL to listen on all addresses
   lineinfile:
     path: /var/lib/pgsql/data/postgresql.conf
-    regexp: '^#?listen_addresses'
+    regexp: '^#?listen_addresses\s*='
     line: "listen_addresses = '*'"
+    state: present
   notify: Restart PostgreSQL
+
 
 - name: Enable and start PostgreSQL service
   systemd:

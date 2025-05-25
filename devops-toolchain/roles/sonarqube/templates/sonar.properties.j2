@@ -1,7 +1,16 @@
+# PostgreSQL connection configuration
 sonar.jdbc.username={{ sonarqube_db_user }}
 sonar.jdbc.password={{ sonarqube_db_password }}
 sonar.jdbc.url=jdbc:postgresql://localhost/{{ sonarqube_db_name }}
+
+# Web server configuration
+sonar.web.host=0.0.0.0
+sonar.web.port={{ sonarqube_web_port }}
+sonar.web.context=/sonarqube
+
+# Path configuration
 sonar.path.data={{ app_dir }}/sonarqube/data
 sonar.path.temp={{ app_dir }}/sonarqube/temp
-sonar.path.logs={{ app_dir }}/sonarqube/logs
-sonar.path.plugins={{ app_dir }}/sonarqube/extensions/plugins
+
+# Set application logging level
+sonar.log.level=INFO
