@@ -15,11 +15,12 @@ jdk_versions:
   - { jdk_version_short: "21", jdk_version: "21.0.3.9.1", java_url: "https://corretto.aws/downloads/resources/21.0.3.9.1/amazon-corretto-21.0.3.9.1-linux-x64.tar.gz" }
 
 # SonarQube settings
-sonarqube_version: "9.9.0.65466"
+sonarqube_version: "9.6.1.59531"
 sonarqube_url: "https://binaries.sonarsource.com/Distribution/sonarqube/sonarqube-{{ sonarqube_version }}.zip"
 sonarqube_user: sonarqube
 sonarqube_group: sonarqube
 sonarqube_db_name: sonarqube
 sonarqube_db_user: sonarqube
-sonarqube_db_password: "securepassword123"
+sonarqube_db_password: "secretsqdppass#1"
 sonarqube_web_port: 9000
+jenkins_port: 8082

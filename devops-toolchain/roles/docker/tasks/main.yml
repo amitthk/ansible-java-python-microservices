@@ -14,3 +14,14 @@
   dnf:
     name: docker-ce
     state: present
+
+- name: Start and enable Docker service
+  systemd:
+    name: docker
+    state: started
+    enabled: true
+
+- name: Install Docker Python library using custom Python interpreter
+  pip:
+    executable: "{{ app_dir }}/python3/bin/pip3"
+    name: docker

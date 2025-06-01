@@ -3,7 +3,11 @@ Description=SonarQube service
 After=syslog.target network.target postgresql.service
 
 [Service]
+User=sonarqube
+Group=sonarqube
 Type=forking
+Environment="JAVA_HOME=/opt/apps/openjdk17"
+Environment="PATH=/opt/apps/openjdk17/bin:/opt/apps/python3/bin:/opt/apps/go/bin:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin"
 Environment="SONAR_JAVA_PATH={{ app_dir }}/openjdk17/bin/java"
 ExecStart={{ app_dir }}/sonarqube/bin/linux-x86-64/sonar.sh start
 ExecStop={{ app_dir }}/sonarqube/bin/linux-x86-64/sonar.sh stop

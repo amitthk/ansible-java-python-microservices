@@ -1,22 +1,30 @@
 * Build your own build and deploy automation (CI/CD) platform using open source tools
 
-In this project we take a look at building a CI/CD platform using open source tools like Gitea, Jenkins, Sonarqube, Sonatype Nexus, postgresql etc.
+In today’s rapidly evolving tech landscape, ensuring software is secure, reliable, and high quality has become a complex and mission-critical challenge for every organization building or deploying software. The solution? DevOps automation—a platform-centric approach to bring standardization, velocity, and traceability into how software is developed, tested, deployed, and maintained.
 
-The article is divided into two parts. In the first part we will build the CICD platform using Ansible playbook.
+Setting up a DevOps platform makes software delivery data-driven, where every release is auditable, every deployment follows the same quality checks, and compliance can be tracked in real time. Whether it's a startup or an enterprise, every IT-driven business should have a DevOps platform in place.
 
-In the second part we will build a sample spring boot microservice and deploy it to the CICD platform.
+In this project, we demonstrate how to build your own CI/CD platform using open source tools—making it cost-effective and extensible. We’ll use Ansible to automate provisioning and installation of components like Gitea, Jenkins, Sonarqube, Sonatype Nexus, and PostgreSQL on a VM. Then we’ll move on to deploying a sample Spring Boot microservice using this setup.
 
 
 Lets begin with setting up our CICD platform using Ansible playbook.
 
-** Setting up the CICD platform using Ansible playbook
+** Part 1: Building the CICD platform with Ansible 
 
-This demo CICD platform is build on single VM. But the ansible playbook can be easily modified to deploy the respective components to multiple VMs.
+We begin by setting up the full CI/CD stack on a single VM using Ansible. The playbook is modular and can be easily extended to support multi-host by modifying your inventory file and host groups for production.
 
-First think you will need to do is to install ansible on your local machine. You can install ansible using the following commands:
+Required Tools:
+A Linux VM (tested on Fedora/RHEL)
+
+- Python 3.11
+- Ansible
+- SSH key access and sudo permissions on the VM
+
+*** 1. Installing Ansible and Python3
+
+To run the Ansible playbook, we need to have Python 3 and Ansible installed on our machine. If you do not have them installed, you can follow the steps below to install them.
 
 #+BEGIN_SRC 
-#If you do not have python3 and pip3 installed on your machine, install them using the following commands:
 
 export PYTHON_URL=https://www.python.org/ftp/python/3.11.11/Python-3.11.11.tar.xz
 export APP_DIR=/opt/apps
@@ -53,11 +61,28 @@ Create the inventory file and specify the ip address of the VM , username and ho
 #+BEGIN_SRC
 
 vi hosts
-# For demo purpose I am install everything on same host. In real world scenario, you may want to split the hosts into different groups and call the respective group for task you're interested in.
+
+#+END_SRC
+
+For demo purpose I am install everything on same host. In real world scenario, you may want to split the hosts into different groups and call the respective group for the task/role you're interested in.
+
+Please note that the ansible_ssh_private_key_file should point to the private key file that you use to connect to your VM. If you do not have a private key file, you can use password authentication by replacing the ansible_ssh_private_key_file argument with ansible_ssh_pass=<your_password> instead.
+
+#+BEGIN_SRC
 [all]
 localhost ansible_ssh_user=amitthakur ansible_ssh_private_key_file=/home/amitthakur/.ssh/id_rsa_devops_master ansible_become_pass=<your_secure_sudo_password>
 
 #+END_SRC
+
+Some of the files downloaded for install by our ansible need to be accessible by the ansible user. So we need to allow the permission for ansible user and set the permissions accordingly in ansible.cfg file.
+
+ansible.cfg file is used to configure the ansible settings. Create a file named ansible.cfg in the same directory as your playbook and add the following content:
+#+BEGIN_SRC 
+[defaults]
+allow_world_readable_tmpfiles = true
+#+END_SRC
+
+
 
 Once above hosts file is created, you can run the ansible playbook to setup the CICD platform using the following command:
 
@@ -67,159 +92,214 @@ ANSIBLE_CONFIG=./ansible.cfg ansible-playbook -i hosts main.yml
 
 After completing the full installation of the ansible playbook explained below you will be able to see the following components running on your VM:
 
-# Considering my VM IP is 192.168.18.3:
+# Considering my VM IP is 192.168.18.28:
 
 - Gitea: 
-http://192.168.18.3:3000/
+http://192.168.18.28:3000/
 
 - Jenkins: 
-http://192.168.18.3:8080/login?from=%2F
+http://192.168.18.28:8080/login?from=%2F
 
 - Sonarqube:
-http://192.168.18.3:9000/
+http://192.168.18.28:9000/
 
 - Nexus:
-http://192.168.18.3:8081/
+http://192.168.18.28:8081/
 
 
 Let us take a look into the ansible playbook to understand how the CICD platform is setup:
 
 *** 1. Install Prerequisites
 
-The first task in the ansible playbook is to install the required packages on the VM. The required packages are:
+The first task in the ansible playbook is to install the required packages on our VM. This includes development libraries for Python, OpenSSL, and other tools required for building and running the applications. We also create system users for each of the applications we will be installing (Gitea, Nexus, Jenkins, Sonarqube) and create directories for each application.
 
 #+BEGIN_SRC 
-    - name: Install required packages
-      dnf:
-        name:
-          - openssl-devel
-          - libffi-devel
-          - zlib-devel
-          - readline-devel
-          - sqlite-devel
-          - bzip2-devel
-          - xz-devel
-          - tk-devel
-          - uuid-devel
-          - gcc
-          - gcc-c++
-          - make
-          - wget
-          - xz
-          - unzip
-          - tar
-          - systemd
-          - git
-        state: present
+---
+- name: Install required packages
+  dnf:
+    name:
+      - openssl-devel
+      - libffi-devel
+      - zlib-devel
+      - readline-devel
+      - sqlite-devel
+      - bzip2-devel
+      - xz-devel
+      - tk-devel
+      - uuid-devel
+      - gcc
+      - gcc-c++
+      - make
+      - wget
+      - xz
+      - unzip
+      - tar
+      - systemd
+      - git
+    state: present
 
-    - name: Create service users
-      user:
-        name: "{{ item }}"
-        system: yes
-        shell: /bin/bash
-        create_home: yes
-        home: "{{ app_dir }}/{{ item }}"
-      loop:
-        - gitea
-        - nexus
-        - jenkins
-        - sonarqube
+- name: Create service users
+  user:
+    name: "{{ item }}"
+    system: yes
+    shell: /bin/bash
+    create_home: yes
+    home: "{{ app_dir }}/{{ item }}"
+  loop:
+    - gitea
+    - nexus
+    - jenkins
+    - sonarqube
 
-    - name: Create app directories
-      file:
-        path: "{{ app_dir }}/{{ item }}"
-        state: directory
-        owner: "{{ item }}"
-        group: "{{ item }}"
-      loop:
-        - gitea
-        - nexus
-        - jenkins
-        - sonarqube
+- name: Create app directories
+  file:
+    path: "{{ app_dir }}/{{ item }}"
+    state: directory
+    owner: "{{ item }}"
+    group: "{{ item }}"
+  loop:
+    - gitea
+    - nexus
+    - jenkins
+    - sonarqube
 
+- name: Create Java and Python directories
+  file:
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - "{{ app_dir }}/openjdk21"
+    - "{{ app_dir }}/openjdk17"
+    - "{{ app_dir }}/python3"
 #+END_SRC
 
 *** 2. Install OpenJDK, Python3, Golang, postgresql
 
+We installed both openjdk21 and openjdk17 as some of the applications we are installing require specific versions of Java. 
+
 #+BEGIN_SRC 
-    - name: Correctly Install Corretto JDK21
-      block:
-        - name: Download Corretto JDK21
-          get_url:
-            url: "{{ java_url }}"
-            dest: "/tmp/corretto-jdk.tar.gz"
-            mode: '0644'
-            force: no
+- name: Download Corretto {{ item.jdk_version_short }} JDK
+  get_url:
+    url: "{{ item.java_url }}"
+    dest: "/tmp/corretto-jdk.tar.gz"
+    mode: '0644'
+    force: no
 
-        - name: Extract Corretto JDK21 to temporary location
-          unarchive:
-            src: "/tmp/corretto-jdk.tar.gz"
-            dest: "/tmp"
-            remote_src: yes
-          args:
-            creates: "/tmp/amazon-corretto-21.0.6.7.1-linux-{{ architecture_alias }}"
+- name: Extract Corretto JDK {{ item.jdk_version_short }} to temporary location
+  unarchive:
+    src: "/tmp/corretto-jdk.tar.gz"
+    dest: "/tmp"
+    remote_src: yes
+  args:
+    creates: "/tmp/amazon-corretto-{{ item.jdk_version }}-linux-x64"
 
-        - name: Move extracted Corretto JDK21 files to final directory
-          shell: |
-            mkdir -p {{ app_dir }}/openjdk21
-            mv /tmp/amazon-corretto-21.0.6.7.1-linux-{{ architecture_alias }}/* {{ app_dir }}/openjdk21/
-          args:
-            creates: "{{ app_dir }}/openjdk21/bin/java"
+- name: Move extracted Corretto JDK {{ item.jdk_version_short }} files to final directory
+  shell: |
+    mkdir -p {{ app_dir }}/openjdk{{ item.jdk_version_short }}
+    chmod -R 0755 /tmp/amazon-corretto-{{ item.jdk_version }}-linux-x64
+    mv /tmp/amazon-corretto-{{ item.jdk_version }}-linux-x64/* {{ app_dir }}/openjdk{{ item.jdk_version_short }}/
+  args:
+    creates: "{{ app_dir }}/openjdk{{ item.jdk_version_short }}/bin/java"
+
+- name: Remove the downloaded tar file
+  file:
+    dest: "/tmp/corretto-jdk.tar.gz"
+    state: absent
+
+#+END_SRC
+
+We also installed Python 3.11 and Golang into custom location as they are required for some of the applications we are installing.
+
+#+BEGIN_SRC 
+- name: Install Python 3.11
+  shell: |
+    cd /tmp
+    if [ ! -f Python-3.11.11.tar.xz ]; then wget {{ python_url }}; fi
+    tar -xf Python-3.11.11.tar.xz
+    cd Python-3.11.11
+    ./configure --prefix={{ app_dir }}/python3 --enable-optimizations
+    make -j$(nproc)
+    make install
+  args:
+    creates: "{{ app_dir }}/python3/bin/python3.11"
+#+END_SRC
+
+#+BEGIN_SRC 
+---
+- name: Download Golang
+  get_url:
+    url: "{{ golang_url }}"
+    dest: "/tmp/golang.tar.gz"
+    mode: '0644'
+    force: no
+
+- name: Install Golang
+  unarchive:
+    src: "/tmp/golang.tar.gz"
+    dest: "{{ app_dir }}"
+    creates: "{{ app_dir }}/go"
+    remote_src: yes
+
+#+END_SRC
+
+Next up we install PostgreSQL, which is required for Gitea and Sonarqube. We will also create the databases and users required for these applications.
+
+#+BEGIN_SRC 
+---
+# PostgreSQL installation and configuration
+- name: Install PostgreSQL packages
+  dnf:
+    name:
+      - postgresql16-server
+      - postgresql16-contrib
+      # - postgresql16-devel
+    state: present
+
+- name: Initialize PostgreSQL database
+  command: postgresql-setup --initdb
+  args:
+    creates: /var/lib/pgsql/data/PG_VERSION
+
+- name: Ensure PostgreSQL service is enabled and started
+  systemd:
+    name: postgresql
+    state: started
+    enabled: true
+
+- name: Allow PostgreSQL connections from localhost
+  lineinfile:
+    path: /var/lib/pgsql/data/pg_hba.conf
+    regexp: '^host\s+all\s+all\s+127.0.0.1/32'
+    line: 'host    all             all             127.0.0.1/32            md5'
+    state: present
+  notify: Restart PostgreSQL
+
+- name: Configure PostgreSQL to listen on all addresses
+  lineinfile:
+    path: /var/lib/pgsql/data/postgresql.conf
+    regexp: '^#?listen_addresses\s*='
+    line: "listen_addresses = '*'"
+    state: present
+  notify: Restart PostgreSQL
 
 
-    - name: Install Python 3.11
-      shell: |
-        cd /tmp
-        if [ ! -f Python-3.11.11.tar.xz ]; then wget {{ python_url }}; fi
-        tar -xf Python-3.11.11.tar.xz
-        cd Python-3.11.11
-        ./configure --prefix={{ app_dir }}/python3 --enable-optimizations
-        make -j$(nproc)
-        make install
-      args:
-        creates: "{{ app_dir }}/python3/bin/python3.11"
+- name: Enable and start PostgreSQL service
+  systemd:
+    name: postgresql
+    state: started
+    enabled: true
 
-    - name: Download Golang
-      get_url:
-        url: "{{ golang_url }}"
-        dest: "/tmp/golang.tar.gz"
-        mode: '0644'
-        force: no
+- name: Install PostgreSQL Python dependencies
+  pip:
+    executable: "{{ app_dir }}/python3/bin/pip3.11"
+    name:
+      - psycopg2-binary
 
-    - name: Install Golang
-      unarchive:
-        src: "/tmp/golang.tar.gz"
-        dest: "{{ app_dir }}"
-        creates: "{{ app_dir }}/go"
-
-    - name: Ensure openjdk21 ownership and executable permission
-      file:
-        path: "{{ app_dir }}/openjdk21"
-        state: directory
-        recurse: yes
-        owner: root
-        group: root
-        mode: "0755"
-      loop:
-        - "{{ app_dir }}/openjdk21"
-        - "{{ app_dir }}/python3"
-        - "{{ app_dir }}/go"
-
-    - name: Install PostgreSQL
-      dnf:
-        name: postgresql-server
-        state: present
-
-    - name: Initialize PostgreSQL database
-      command: postgresql-setup --initdb
-      args:
-        creates: /var/lib/pgsql/data/PG_VERSION
-
-    - name: Enable and start PostgreSQL service
-      systemd:
-        name: postgresql
-        state: started
-        enabled: true
+- name: Create PostgreSQL databases and users
+  include_tasks: pgsql_create_db.yml
+  loop: "{{ database_users }}"
+  loop_control:
+    loop_var: item
 
 #+END_SRC
 
@@ -258,52 +338,253 @@ We download the Jenkins war file and run it using the java command in our system
 Setting up Sonatype Nexus is also fairly straightforward. We download the Nexus binary and set it up:
 
 #+BEGIN_SRC 
-    - name: Setup Nexus
-      unarchive:
-        src: "{{ nexus_url }}"
-        dest: "{{ app_dir }}/nexus"
-        extra_opts: ["--strip-components=1"]
-        remote_src: yes
-        creates: "{{ app_dir }}/nexus/bin/nexus"
+---
+- name: Download Nexus archive
+  get_url:
+    url: "{{ nexus_url }}"
+    dest: "/tmp/nexus.tar.gz"
+    mode: '0644'
+    timeout: 300  # Adjust timeout as needed
+
+- name: Extract Nexus archive
+  unarchive:
+    src: "/tmp/nexus.tar.gz"
+    dest: "{{ app_dir }}/nexus"
+    extra_opts: ["--strip-components=1"]
+    remote_src: yes
+    creates: "{{ app_dir }}/nexus/bin/nexus"
+
+- name: Ensure Sonatype-work directory structure exists with correct permissions
+  file:
+    path: "{{ app_dir }}/sonatype-work/nexus3"
+    state: directory
+    owner: nexus
+    group: nexus
+    mode: '0755'
+    recurse: yes
+
+- name: Ensure correct ownership for Nexus application directory
+  file:
+    path: "{{ app_dir }}/nexus"
+    state: directory
+    owner: nexus
+    group: nexus
+    recurse: yes
+
 
 #+END_SRC
 
 
 *** 3. Sonarqube
 
- We download the Sonarqube binary and set it up for running as systemctl service:
+We download the Sonarqube binary and set it up for running as systemctl service:
 
 #+BEGIN_SRC 
-    - name: Download SonarQube
-      get_url:
-        url: "{{ sonarqube_url }}"
-        dest: "/tmp/sonarqube.zip"
-        mode: '0644'
-        force: no
+---
+# Configure sysctl for SonarQube requirements
+- name: Configure sysctl limits for SonarQube requirements
+  sysctl:
+    name: "{{ item.name }}"
+    value: "{{ item.value }}"
+    state: present
+    reload: yes
+  loop:
+    - { name: "vm.max_map_count", value: "524288" }
+    - { name: "fs.file-max", value: "131072" }
 
-    - name: Extract SonarQube
-      unarchive:
-        src: "/tmp/sonarqube.zip"
-        dest: "/tmp"
-        remote_src: yes
+# Create SonarQube user
+- name: Create SonarQube group
+  group:
+    name: "{{ sonarqube_group }}"
+    state: present
 
-    - name: Find extracted SonarQube directory
-      find:
-        paths: "/tmp"
-        patterns: "sonarqube-*"
-        file_type: directory
-      register: sonarqube_extracted_dir
+- name: Create SonarQube user
+  user:
+    name: "{{ sonarqube_user }}"
+    group: "{{ sonarqube_group }}"
+    system: yes
+    shell: /bin/bash
+    home: "/home/{{ sonarqube_user }}"
+    createhome: yes
+    state: present
 
-    - name: Move SonarQube contents to app directory
-      shell: |
-        shopt -s dotglob
-        mv {{ sonarqube_extracted_dir.files[0].path }}/* {{ app_dir }}/sonarqube/
-      args:
-        creates: "{{ app_dir }}/sonarqube/bin"
+- name: Set limits for SonarQube user
+  lineinfile:
+    path: /etc/security/limits.conf
+    line: "{{ sonarqube_user }} {{ item }}"
+    state: present
+  loop:
+    - "soft nofile 131072"
+    - "hard nofile 131072"
+    - "soft nproc 8192"
+    - "hard nproc 8192"
 
+- name: Ensure SonarQube application directory exists
+  file:
+    path: "{{ app_dir }}/sonarqube"
+    state: directory
+    owner: "{{ sonarqube_user }}"
+    group: "{{ sonarqube_group }}"
+    mode: '0755'
+
+- name: Ensure temporary download directory exists
+  file:
+    path: "{{ app_dir }}/tmp/sonarqube-install"
+    state: directory
+    mode: '0755'
+
+- name: Download SonarQube if not already present
+  get_url:
+    url: "{{ sonarqube_url }}"
+    dest: "{{ app_dir }}/tmp/sonarqube-install/sonarqube.zip"
+    mode: '0644'
+    force: no
+
+- name: Check if SonarQube is already installed
+  stat:
+    path: "{{ app_dir }}/sonarqube/bin"
+  register: sonarqube_installed
+
+- name: Extract SonarQube to temporary directory
+  unarchive:
+    src: "{{ app_dir }}/tmp/sonarqube-install/sonarqube.zip"
+    dest: "{{ app_dir }}/tmp/sonarqube-install"
+    remote_src: yes
+    creates: "{{ app_dir }}/tmp/sonarqube-install/sonarqube-{{ sonarqube_version | default('*') }}"
+  when: not sonarqube_installed.stat.exists
+
+- name: Find extracted SonarQube directory
+  find:
+    paths: "{{ app_dir }}/tmp/sonarqube-install"
+    patterns: "sonarqube-*"
+    file_type: directory
+    recurse: no
+  register: sonarqube_dirs
+  when: not sonarqube_installed.stat.exists
+
+- name: Fail if no SonarQube directory found
+  fail:
+    msg: "No SonarQube directory found after extraction"
+  when: 
+    - not sonarqube_installed.stat.exists
+    - sonarqube_dirs.matched == 0
+
+- name: Set fact for extracted SonarQube path
+  set_fact:
+    extracted_sonarqube_path: "{{ sonarqube_dirs.files[0].path }}"
+  when: 
+    - not sonarqube_installed.stat.exists
+    - sonarqube_dirs.matched > 0
+
+- name: Move SonarQube contents to application directory
+  command: >
+    cp -r "{{ extracted_sonarqube_path }}/." "{{ app_dir }}/sonarqube/"
+  when: 
+    - not sonarqube_installed.stat.exists
+    - sonarqube_dirs.matched > 0
+  notify: Restart SonarQube
+
+- name: Ensure correct permissions for SonarQube directory
+  file:
+    path: "{{ app_dir }}/sonarqube"
+    state: directory
+    recurse: yes
+    owner: "{{ sonarqube_user }}"
+    group: "{{ sonarqube_group }}"
+
+- name: Clean up temporary extraction directory
+  file:
+    path: "{{ app_dir }}/tmp/sonarqube-install"
+    state: absent
+  when: not sonarqube_installed.stat.exists
+
+- name: Configure sonar.properties
+  template:
+    src: sonar.properties.j2
+    dest: "{{ app_dir }}/sonarqube/conf/sonar.properties"
+    owner: "{{ sonarqube_user }}"
+    group: "{{ sonarqube_group }}"
+    mode: '0644'
+  notify: Restart SonarQube
+
+- name: Deploy SonarQube systemd service
+  template:
+    src: sonarqube.service.j2
+    dest: "/etc/systemd/system/sonarqube.service"
+    mode: '0644'
+  notify:
+    - Reload systemd
+    - Restart SonarQube
+
+- name: Enable and start SonarQube service
+  systemd:
+    name: sonarqube
+    state: started
+    enabled: true
 #+END_SRC
 
 
+Troubleshooting:
+
+If you run into issues with connecting to the postgresql database, you may need to edit the pg_hba.conf file to allow local connections. You can do this by running the following command:
+
+#+BEGIN_SRC
+sudo vi /var/lib/pgsql/data/pg_hba.conf
+#+END_SRC
+And then ensure following lines are present in the pg_hba.conf file:
+#+BEGIN_SRC
+# "local" is for Unix domain socket connections only
+local   all             postgres                                     peer
+local   all             appadm                                    md5 
+local   all             gitea                                    md5 
+local   all             sonarqube                                    md5 
+# IPv4 local connections:
+host    all             all             127.0.0.1/32            md5
+host    all             all             192.168.18.1/24            md5
+# IPv6 local connections:
+host    all             all             ::1/128                 md5
+#+END_SRC
+After making the changes, restart the postgresql service:
+#+BEGIN_SRC
+sudo systemctl restart postgresql
+#+END_SRC
+
+Connect to the postgresql by switching to the postgres user and running the psql command:
+#+BEGIN_SRC
+sudo su - postgres
+psql
+#+END_SRC
+
+You can drop and recreate the databases for gitea, sonarqube using the following commands:
+#+BEGIN_SRC
+
+-- Terminate existing connections to the sonarqube DB
+SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'sonarqube';
+
+-- Drop and recreate the database
+DROP DATABASE IF EXISTS sonarqube;
+DROP ROLE IF EXISTS sonarqube;
+
+CREATE ROLE sonarqube WITH LOGIN PASSWORD 'your_password';
+CREATE DATABASE sonarqube OWNER sonarqube;
+
+-- Connect to the database to configure schema and permissions
+\c sonarqube
+
+-- Create a dedicated schema if you want to avoid using "public"
+CREATE SCHEMA sonarqube_schema AUTHORIZATION sonarqube;
+
+-- Set default search path to use the new schema
+ALTER ROLE sonarqube SET search_path TO sonarqube_schema;
+
+-- Optional: Grant privileges explicitly (mostly redundant since user owns the schema)
+GRANT ALL ON SCHEMA sonarqube_schema TO sonarqube;
+
+#+END_SRC
+
+Repeat the above steps for gitea database as well.
+
+After the playbook runs successfully, you will have all the components of the CICD platform installed and running on your VM.
 Once the ansible playbook is run successfully, you will have the CICD platform setup on your VM.
 We can see the below screens, and you will just need to run through the initial setup screens for each of the components to setup the admin accounts and basic permissions.
 In enterprise setup you basically perform advanced integrations to LDAP, SSO, etc.

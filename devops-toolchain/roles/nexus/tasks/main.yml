@@ -1,11 +1,19 @@
 ---
-- name: Setup Nexus
+- name: Download Nexus archive
+  get_url:
+    url: "{{ nexus_url }}"
+    dest: "/tmp/nexus.tar.gz"
+    mode: '0644'
+    timeout: 300  # Adjust timeout as needed
+
+- name: Extract Nexus archive
   unarchive:
-    src: "{{ nexus_url }}"
+    src: "/tmp/nexus.tar.gz"
     dest: "{{ app_dir }}/nexus"
     extra_opts: ["--strip-components=1"]
     remote_src: yes
     creates: "{{ app_dir }}/nexus/bin/nexus"
+
 - name: Ensure Sonatype-work directory structure exists with correct permissions
   file:
     path: "{{ app_dir }}/sonatype-work/nexus3"

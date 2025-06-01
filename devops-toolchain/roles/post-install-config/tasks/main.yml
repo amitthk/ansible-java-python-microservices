@@ -53,11 +53,7 @@
     - nexus
     - jenkins
     - sonarqube
-- name: Start and enable Docker service
-  systemd:
-    name: docker
-    state: started
-    enabled: true
+
 
 - name: Ensure Python, Java, and Go are in PATH globally
   copy:
@@ -71,7 +67,4 @@
   args:
     creates: "{{ app_dir }}/python3/bin/pip3"
 
-- name: Install Docker Python library using custom Python interpreter
-  pip:
-    executable: "{{ app_dir }}/python3/bin/pip3"
-    name: docker
+

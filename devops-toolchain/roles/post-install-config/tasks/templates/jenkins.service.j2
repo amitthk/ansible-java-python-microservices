@@ -5,7 +5,7 @@ After=network.target
 [Service]
 User=jenkins
 Environment="JAVA_HOME={{ app_dir }}/openjdk21"
-ExecStart={{ app_dir }}/openjdk21/bin/java -jar {{ app_dir }}/jenkins/jenkins.war --httpPort=8080
+ExecStart={{ app_dir }}/openjdk21/bin/java -jar {{ app_dir }}/jenkins/jenkins.war --httpPort={{jenkins_port}}
 Restart=always
 
 [Install]
